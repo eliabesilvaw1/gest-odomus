@@ -1184,6 +1184,32 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px" id="vid-resps-pills"></div>
     </div>
     <div class="form-row"><label class="form-label">Observações</label><input class="ti" id="vid-obs" style="width:100%" placeholder="Alguma observação adicional..."/></div>
+    <!-- EDITOR EXTERNO -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:500;color:var(--tx)">✂️ Enviar para editor externo</div>
+        <label class="perm-switch" style="width:44px;height:24px">
+          <input type="checkbox" id="vid-tem-editor" onchange="toggleEditorFields()"/>
+          <span class="perm-slider"></span>
+        </label>
+      </div>
+      <div id="vid-editor-fields" style="display:none">
+        <div class="grid2" style="gap:10px;margin-bottom:10px">
+          <div><label class="form-label">Nome do editor</label><input class="ti" id="vid-editor-nome" style="width:100%" placeholder="Ex: João Silva"/></div>
+          <div><label class="form-label">Valor cobrado (R$)</label><input class="ti" id="vid-editor-val" type="number" style="width:100%" placeholder="Ex: 150"/></div>
+        </div>
+        <div class="grid2" style="gap:10px">
+          <div><label class="form-label">Data de entrega ao editor</label><input class="ti" type="date" id="vid-editor-prazo" style="width:100%"/></div>
+          <div><label class="form-label">Status pagamento</label>
+            <select class="sel" id="vid-editor-status" style="width:100%">
+              <option value="pend">Aguardando pagamento</option>
+              <option value="ok">Pago</option>
+            </select>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--am);margin-top:8px">⚠ Ao salvar, será criada automaticamente uma despesa na aba Financeiro.</div>
+      </div>
+    </div>
     <div class="form-actions"><button class="ghost" onclick="closeModal('modal-video')">Cancelar</button><button class="go" onclick="saveVideo()">Salvar vídeo</button></div>
   </div>
 </div>
@@ -3469,6 +3495,14 @@ window.openNovoVideo=()=>{
   // reset etapa pills
   document.querySelectorAll('#vid-etapa-pills button').forEach(b=>{b.style.opacity=b.dataset.etapa==='copy'?'1':'0.4';});
   renderVidRespPills();
+  // Reset editor fields
+  const edCheck=document.getElementById('vid-tem-editor');
+  if(edCheck)edCheck.checked=false;
+  const edFields=document.getElementById('vid-editor-fields');
+  if(edFields)edFields.style.display='none';
+  ['vid-editor-nome','vid-editor-val','vid-editor-prazo'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
   openModal('modal-video');
 };
 
@@ -3488,7 +3522,29 @@ window.openEditVideo=(id)=>{
   document.getElementById('vid-tipo').value=v.tipo||'feed';
   document.querySelectorAll('#vid-etapa-pills button').forEach(b=>{b.style.opacity=b.dataset.etapa===_selectedEtapa?'1':'0.4';});
   renderVidRespPills(v.resps||[]);
+  // Load editor fields
+  const temEd=!!v.temEditor;
+  const edCheck=document.getElementById('vid-tem-editor');
+  if(edCheck){edCheck.checked=temEd;}
+  const edFields=document.getElementById('vid-editor-fields');
+  if(edFields)edFields.style.display=temEd?'block':'none';
+  if(temEd){
+    const edNome=document.getElementById('vid-editor-nome');
+    const edVal=document.getElementById('vid-editor-val');
+    const edPrazo=document.getElementById('vid-editor-prazo');
+    const edSt=document.getElementById('vid-editor-status');
+    if(edNome)edNome.value=v.editorNome||'';
+    if(edVal)edVal.value=v.editorVal||'';
+    if(edPrazo)edPrazo.value=v.editorPrazo||'';
+    if(edSt)edSt.value=v.editorStatus||'pend';
+  }
   openModal('modal-video');
+};
+
+// Toggle editor fields in modal
+window.toggleEditorFields=()=>{
+  const on=document.getElementById('vid-tem-editor').checked;
+  document.getElementById('vid-editor-fields').style.display=on?'block':'none';
 };
 
 window.saveVideo=()=>{
@@ -3503,17 +3559,90 @@ window.saveVideo=()=>{
   const prazo=document.getElementById('vid-prazo').value;
   const etapa=_selectedEtapa;
   const resps=[..._vidRespSelected];
+  // Editor externo
+  const temEditor=document.getElementById('vid-tem-editor').checked;
+  const editorNome=document.getElementById('vid-editor-nome')?.value.trim()||'';
+  const editorVal=parseFloat(document.getElementById('vid-editor-val')?.value)||0;
+  const editorPrazo=document.getElementById('vid-editor-prazo')?.value||'';
+  const editorStatus=document.getElementById('vid-editor-status')?.value||'pend';
+
   if(!S.videos)S.videos=[];
+  const isNew=!cpVideoCtx;
+  let video;
   if(cpVideoCtx){
-    const v=S.videos.find(x=>x.id===cpVideoCtx);
-    if(v)Object.assign(v,{titulo,clientId,tipo,copy,legenda,link,obs,prazo,etapa,resps});
+    video=S.videos.find(x=>x.id===cpVideoCtx);
+    if(video)Object.assign(video,{titulo,clientId,tipo,copy,legenda,link,obs,prazo,etapa,resps,
+      temEditor,editorNome,editorVal,editorPrazo,editorStatus});
   } else {
-    S.videos.push({id:uid(),titulo,clientId,tipo,copy,legenda,link,obs,prazo,etapa,resps,criadoEm:Date.now()});
+    video={id:uid(),titulo,clientId,tipo,copy,legenda,link,obs,prazo,etapa,resps,
+      temEditor,editorNome,editorVal,editorPrazo,editorStatus,criadoEm:Date.now(),
+      taskIds:{}}; // taskIds maps etapa → task id
+    S.videos.push(video);
   }
+
+  // ── AUTO-CREATE TASKS IN CLIENT ──
+  if(isNew&&video){
+    const client=(S.clients||[]).find(c=>c.id===clientId);
+    if(client){
+      const etapasToCreate=['copy','gravacao','edicao','revisao'];
+      const respMap={
+        copy:resps.find(r=>{const c=(S.colaboradores||[]).find(x=>x.tag===r);return c?.roles?.includes('copywriter')||c?.roles?.includes('social');})||resps[0]||'Todos',
+        gravacao:resps[0]||'Todos',
+        edicao:resps.find(r=>{const c=(S.colaboradores||[]).find(x=>x.tag===r);return c?.roles?.includes('editor');})||editorNome||resps[0]||'Todos',
+        revisao:resps[0]||'Todos',
+      };
+      etapasToCreate.forEach(ep=>{
+        const taskTxt=`[${titulo}] ${ETAPA_LABELS[ep]}`;
+        const taskId=uid();
+        S.tasks[taskId]={id:taskId,txt:taskTxt,r:respMap[ep],done:ep!==etapa&&['copy','gravacao','edicao'].slice(0,['copy','gravacao','edicao','revisao'].indexOf(ep)).length>0?false:false,urgent:false,note:''};
+        if(!client.taskIds)client.taskIds=[];
+        client.taskIds.push(taskId);
+        video.taskIds[ep]=taskId;
+        // Add to rotina
+        const rotinaKey={copy:'copy',gravacao:'traf',edicao:'copy',revisao:'copy'}[ep];
+        if(rotinaKey&&S.rotina[rotinaKey]){
+          S.rotina[rotinaKey].push(taskId);
+        }
+      });
+      // Log in client history
+      if(!client.history)client.history=[];
+      client.history.unshift({id:uid(),type:'note',
+        txt:'Vídeo adicionado à produção: '+titulo+' ('+ETAPA_LABELS[etapa]+')',
+        who:resps[0]||'Todos',ts:Date.now()});
+      dbW('clients',S.clients);
+      dbW('rotina',S.rotina);
+    }
+  }
+
+  // ── AUTO-CREATE DESPESA FOR EDITOR ──
+  if(temEditor&&editorVal>0){
+    if(!S.despesas)S.despesas=[];
+    // Remove old despesa for this video+editor if editing
+    if(cpVideoCtx)S.despesas=S.despesas.filter(d=>d.videoId!==cpVideoCtx||d.cat!=='edicao');
+    const now=new Date();
+    const mes=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const clientName=(S.clients||[]).find(c=>c.id===clientId)?.name||'';
+    S.despesas.push({
+      id:uid(),
+      videoId:video.id,
+      desc:'Edição de Vídeo — '+titulo,
+      cat:'edicao',
+      detalhe:'Editor: '+editorNome+(clientName?' · Cliente: '+clientName:''),
+      val:editorVal,
+      mes,
+      status:editorStatus,
+      dataPag:editorStatus==='ok'?(editorPrazo||now.toISOString().split('T')[0]):'',
+      recorrente:false,
+      pagoPor:currentColab?.name||''
+    });
+    dbW('despesas',S.despesas);
+  }
+
   dbW('videos',S.videos);
+  dbW('tasks',S.tasks);
   closeModal('modal-video');
-  renderConteudo();
-  showToast('✓ Vídeo salvo');
+  renderAll();
+  showToast('✓ Vídeo salvo'+(isNew?' — tarefas criadas automaticamente':''));
 };
 
 window.setCpFilter=(f)=>{
@@ -3526,9 +3655,25 @@ window.setCpFilter=(f)=>{
 };
 
 window.delVideo=(id)=>{
-  showConfirm({icon:'🗑️',title:'Remover vídeo?',msg:'Este vídeo e todas as informações serão removidos permanentemente.',okLabel:'Remover',okClass:'danger',onOk:()=>{
+  const vd=(S.videos||[]).find(x=>x.id===id);
+  showConfirm({icon:'🗑️',title:'Remover vídeo?',msg:'Este vídeo, tarefas associadas e despesas de edição serão removidos.',okLabel:'Remover',okClass:'danger',onOk:()=>{
+    // Remove associated tasks from client
+    if(vd?.taskIds){
+      const client=(S.clients||[]).find(c=>c.id===vd.clientId);
+      Object.values(vd.taskIds).forEach(tid=>{
+        delete S.tasks[tid];
+        if(client)client.taskIds=(client.taskIds||[]).filter(x=>x!==tid);
+        // Remove from rotina
+        Object.keys(S.rotina||{}).forEach(k=>{S.rotina[k]=(S.rotina[k]||[]).filter(x=>x!==tid);});
+      });
+      dbW('tasks',S.tasks);dbW('clients',S.clients);dbW('rotina',S.rotina);
+    }
+    // Remove editor despesa
+    S.despesas=(S.despesas||[]).filter(d=>d.videoId!==id);
+    dbW('despesas',S.despesas);
     S.videos=(S.videos||[]).filter(v=>v.id!==id);
-    dbW('videos',S.videos);renderConteudo();showToast('Vídeo removido');
+    dbW('videos',S.videos);
+    renderAll();showToast('Vídeo removido');
   }});
 };
 
@@ -3536,7 +3681,34 @@ window.avancarEtapa=(id)=>{
   const v=(S.videos||[]).find(x=>x.id===id);if(!v)return;
   const order=['copy','gravacao','edicao','revisao','entregue'];
   const idx=order.indexOf(v.etapa);
-  if(idx<order.length-1){v.etapa=order[idx+1];dbW('videos',S.videos);renderConteudo();showToast(`✓ Avançou para ${ETAPA_LABELS[v.etapa]}`);}
+  if(idx>=order.length-1)return;
+  const oldEtapa=v.etapa;
+  v.etapa=order[idx+1];
+  // Mark old stage task as done in client
+  if(v.taskIds&&v.taskIds[oldEtapa]){
+    const taskId=v.taskIds[oldEtapa];
+    if(S.tasks[taskId]){
+      S.tasks[taskId].done=true;
+      dbW('tasks',S.tasks);
+    }
+    // Log in client history
+    const client=(S.clients||[]).find(c=>c.id===v.clientId);
+    if(client){
+      if(!client.history)client.history=[];
+      client.history.unshift({id:uid(),type:'task',
+        txt:'['+v.titulo+'] '+ETAPA_LABELS[oldEtapa]+' concluído → '+ETAPA_LABELS[v.etapa],
+        who:S.tasks[v.taskIds[oldEtapa]]?.r||'Todos',ts:Date.now()});
+      dbW(`clients/${(S.clients||[]).indexOf(client)}/history`,client.history);
+    }
+  }
+  // Mark current stage task as active (not done)
+  if(v.taskIds&&v.taskIds[v.etapa]&&S.tasks[v.taskIds[v.etapa]]){
+    S.tasks[v.taskIds[v.etapa]].done=false;
+    dbW('tasks',S.tasks);
+  }
+  dbW('videos',S.videos);
+  renderAll();
+  showToast('✓ Avançou para '+ETAPA_LABELS[v.etapa]);
 };
 
 function renderConteudo(){
@@ -3604,6 +3776,7 @@ function renderConteudo(){
           </div>
           ${v.copy?`<div style="font-size:11px;color:var(--mu);margin-bottom:4px;line-height:1.5">📝 ${v.copy.slice(0,120)}${v.copy.length>120?'...':''}</div>`:''}
           ${v.link?`<a href="${v.link}" target="_blank" style="font-size:11px;color:var(--bl);text-decoration:underline">☁ Ver arquivo na nuvem</a>`:''}
+          ${v.temEditor&&v.editorNome?`<div style="font-size:11px;color:var(--pu);margin-top:4px;background:var(--pu-bg);padding:3px 8px;border-radius:6px;display:inline-block">✂️ Editor: ${v.editorNome} · ${v.editorVal?'R$ '+parseFloat(v.editorVal).toLocaleString('pt-BR'):'—'} · ${v.editorStatus==='ok'?'<span style=\"color:var(--gn)\">✓ Pago</span>':'<span style=\"color:var(--am)\">⏳ Aguardando</span>'}</div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
           ${canAdvance?`<button class="c-btn" style="font-size:11px;padding:4px 10px" onclick="avancarEtapa('${v.id}')">Avançar → ${ETAPA_LABELS[order[order.indexOf(v.etapa)+1]]||''}</button>`:'<span style="font-size:11px;color:var(--gn);font-weight:500">✓ Entregue</span>'}
