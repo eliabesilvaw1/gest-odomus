@@ -769,13 +769,14 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
       <div class="card">
         <div class="card-head">
           <div class="card-title"><div class="cdot cdot-p"></div>Vídeos em produção</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="cp-stage-pill cp-stage-copy" onclick="setCpFilter('copy')" id="cpf-copy">Copy</button>
-            <button class="cp-stage-pill cp-stage-grav" onclick="setCpFilter('gravacao')" id="cpf-gravacao">Gravação</button>
-            <button class="cp-stage-pill cp-stage-edicao" onclick="setCpFilter('edicao')" id="cpf-edicao">Edição</button>
-            <button class="cp-stage-pill cp-stage-rev" onclick="setCpFilter('revisao')" id="cpf-revisao">Revisão</button>
-            <button class="cp-stage-pill cp-stage-ok" onclick="setCpFilter('entregue')" id="cpf-entregue">Entregue</button>
-            <button class="cp-stage-pill" style="background:var(--sf3);color:var(--mu)" onclick="setCpFilter('all')" id="cpf-all">Todos</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="cp-filter-bar">
+            <button class="cp-stage-pill" style="background:var(--sf3);color:var(--mu2)" onclick="setCpFilter('all')" id="cpf-all">Todos <span id="cpf-cnt-all" style="font-size:9px;margin-left:2px"></span></button>
+            <button class="cp-stage-pill cp-stage-copy" onclick="setCpFilter('copy')" id="cpf-copy">Copy <span id="cpf-cnt-copy" style="font-size:9px"></span></button>
+            <button class="cp-stage-pill cp-stage-grav" onclick="setCpFilter('gravacao')" id="cpf-gravacao">Gravação <span id="cpf-cnt-gravacao" style="font-size:9px"></span></button>
+            <button class="cp-stage-pill cp-stage-edicao" onclick="setCpFilter('edicao')" id="cpf-edicao">Edição <span id="cpf-cnt-edicao" style="font-size:9px"></span></button>
+            <button class="cp-stage-pill cp-stage-rev" onclick="setCpFilter('revisao')" id="cpf-revisao">Revisão <span id="cpf-cnt-revisao" style="font-size:9px"></span></button>
+            <button class="cp-stage-pill cp-stage-ok" onclick="setCpFilter('entregue')" id="cpf-entregue">Entregue <span id="cpf-cnt-entregue" style="font-size:9px"></span></button>
+            <button class="cp-stage-pill" style="background:var(--am-bg);color:var(--am);border-color:var(--am-bd)" onclick="setCpFilter('referencia')" id="cpf-referencia">📌 Referências <span id="cpf-cnt-referencia" style="font-size:9px"></span></button>
           </div>
         </div>
         <div id="cp-videos-list"></div>
@@ -1150,12 +1151,13 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
 
 <!-- MODAL: Novo/Editar Vídeo -->
 <div class="modal-bg" id="modal-video">
-  <div class="modal" style="width:560px">
+  <div class="modal" style="width:600px;max-height:90vh;overflow-y:auto">
     <div class="modal-hd"><div class="modal-title" id="video-modal-title">Novo vídeo</div><button class="modal-close" onclick="closeModal('modal-video')">×</button></div>
-    <div class="form-row"><label class="form-label">Título / nome do vídeo</label><input class="ti" id="vid-titulo" style="width:100%" placeholder="Ex: 5 erros que afastam pacientes da sua clínica"/></div>
+
+    <!-- BLOCO 1: IDENTIFICAÇÃO -->
     <div class="grid2" style="gap:10px">
       <div class="form-row" style="margin-bottom:0"><label class="form-label">Cliente</label><select class="sel" id="vid-cliente" style="width:100%"></select></div>
-      <div class="form-row" style="margin-bottom:0"><label class="form-label">Tipo</label>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Tipo de publicação</label>
         <select class="sel" id="vid-tipo" style="width:100%">
           <option value="trafego">Tráfego pago</option>
           <option value="feed">Feed / orgânico</option>
@@ -1165,27 +1167,48 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
         </select>
       </div>
     </div>
-    <div class="form-row"><label class="form-label">Copy / roteiro</label><textarea class="ti" id="vid-copy" style="width:100%;min-height:80px;resize:vertical" placeholder="Cole ou escreva a copy aqui..."></textarea></div>
-    <div class="form-row"><label class="form-label">Legenda do vídeo</label><textarea class="ti" id="vid-legenda" style="width:100%;min-height:60px;resize:vertical" placeholder="Legenda para publicação..."></textarea></div>
-    <div class="grid2" style="gap:10px">
-      <div class="form-row" style="margin-bottom:0"><label class="form-label">Link do arquivo (nuvem)</label><input class="ti" id="vid-link" style="width:100%" placeholder="drive.google.com/..."/></div>
-      <div class="form-row" style="margin-bottom:0"><label class="form-label">Data de entrega</label><input class="ti" type="date" id="vid-prazo" style="width:100%"/></div>
-    </div>
-    <div class="form-row"><label class="form-label">Etapa atual</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" id="vid-etapa-pills">
-        <button type="button" class="cp-stage-pill cp-stage-copy" data-etapa="copy" onclick="selectEtapa(this)">Copy</button>
-        <button type="button" class="cp-stage-pill cp-stage-grav" data-etapa="gravacao" onclick="selectEtapa(this)">Gravação</button>
-        <button type="button" class="cp-stage-pill cp-stage-edicao" data-etapa="edicao" onclick="selectEtapa(this)">Edição</button>
-        <button type="button" class="cp-stage-pill cp-stage-rev" data-etapa="revisao" onclick="selectEtapa(this)">Revisão</button>
-        <button type="button" class="cp-stage-pill cp-stage-ok" data-etapa="entregue" onclick="selectEtapa(this)">Entregue</button>
+    <div class="form-row"><label class="form-label">Título / nome do vídeo</label><input class="ti" id="vid-titulo" style="width:100%" placeholder="Ex: 5 erros que afastam pacientes da sua clínica"/></div>
+
+    <!-- REFERÊNCIA TOGGLE -->
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--am-bg);border:1px solid var(--am-bd);border-radius:var(--rs);margin-bottom:14px" id="vid-ref-banner">
+      <label class="perm-switch socio" style="flex-shrink:0">
+        <input type="checkbox" id="vid-referencia" onchange="toggleReferencia()"/>
+        <span class="perm-slider"></span>
+      </label>
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--am)">📌 Apenas referência</div>
+        <div style="font-size:11px;color:var(--mu)">Ideia futura sem prazo — não gera alerta de atraso nem tarefa obrigatória</div>
       </div>
     </div>
-    <div class="form-row"><label class="form-label">Responsáveis</label>
+
+    <!-- BLOCO 2: COPY -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--bl);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📝 Copy e roteiro</div>
+      <div class="form-row"><label class="form-label">Copy / roteiro</label><textarea class="ti" id="vid-copy" style="width:100%;min-height:90px;resize:vertical" placeholder="Cole ou escreva a copy aqui..."></textarea></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Legenda para publicação</label><textarea class="ti" id="vid-legenda" style="width:100%;min-height:50px;resize:vertical" placeholder="Legenda do post..."></textarea></div>
+    </div>
+
+    <!-- BLOCO 3: AGENDA DE PRODUÇÃO -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:12px" id="vid-agenda-block">
+      <div style="font-size:11px;font-weight:600;color:var(--am);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📅 Agenda de produção</div>
+      <div class="grid2" style="gap:10px;margin-bottom:10px">
+        <div><label class="form-label">Data de gravação</label><input class="ti" type="date" id="vid-data-grav" style="width:100%"/></div>
+        <div><label class="form-label">Prazo de edição</label><input class="ti" type="date" id="vid-data-edicao" style="width:100%"/></div>
+      </div>
+      <div class="grid2" style="gap:10px">
+        <div><label class="form-label">Data de entrega final</label><input class="ti" type="date" id="vid-prazo" style="width:100%"/></div>
+        <div><label class="form-label">Link do arquivo (nuvem)</label><input class="ti" id="vid-link" style="width:100%" placeholder="drive.google.com/..."/></div>
+      </div>
+    </div>
+
+    <!-- BLOCO 4: RESPONSÁVEIS -->
+    <div class="form-row">
+      <label class="form-label">Responsáveis por este vídeo</label>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px" id="vid-resps-pills"></div>
     </div>
-    <div class="form-row"><label class="form-label">Observações</label><input class="ti" id="vid-obs" style="width:100%" placeholder="Alguma observação adicional..."/></div>
-    <!-- EDITOR EXTERNO -->
-    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:4px">
+
+    <!-- BLOCO 5: EDITOR EXTERNO -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="font-size:12px;font-weight:500;color:var(--tx)">✂️ Enviar para editor externo</div>
         <label class="perm-switch" style="width:44px;height:24px">
@@ -1210,6 +1233,8 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
         <div style="font-size:11px;color:var(--am);margin-top:8px">⚠ Ao salvar, será criada automaticamente uma despesa na aba Financeiro.</div>
       </div>
     </div>
+
+    <div class="form-row"><label class="form-label">Observações</label><input class="ti" id="vid-obs" style="width:100%" placeholder="Alguma observação adicional..."/></div>
     <div class="form-actions"><button class="ghost" onclick="closeModal('modal-video')">Cancelar</button><button class="go" onclick="saveVideo()">Salvar vídeo</button></div>
   </div>
 </div>
@@ -3495,14 +3520,15 @@ window.openNovoVideo=()=>{
   // reset etapa pills
   document.querySelectorAll('#vid-etapa-pills button').forEach(b=>{b.style.opacity=b.dataset.etapa==='copy'?'1':'0.4';});
   renderVidRespPills();
-  // Reset editor fields
-  const edCheck=document.getElementById('vid-tem-editor');
-  if(edCheck)edCheck.checked=false;
-  const edFields=document.getElementById('vid-editor-fields');
-  if(edFields)edFields.style.display='none';
-  ['vid-editor-nome','vid-editor-val','vid-editor-prazo'].forEach(id=>{
+  // Reset all fields
+  ['vid-editor-nome','vid-editor-val','vid-editor-prazo','vid-data-grav','vid-data-edicao'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
+  const edCheck=document.getElementById('vid-tem-editor');if(edCheck)edCheck.checked=false;
+  const edFields=document.getElementById('vid-editor-fields');if(edFields)edFields.style.display='none';
+  const refCheck=document.getElementById('vid-referencia');if(refCheck)refCheck.checked=false;
+  const agBlock=document.getElementById('vid-agenda-block');
+  if(agBlock){agBlock.style.opacity='1';agBlock.style.pointerEvents='auto';}
   openModal('modal-video');
 };
 
@@ -3538,6 +3564,11 @@ window.openEditVideo=(id)=>{
     if(edPrazo)edPrazo.value=v.editorPrazo||'';
     if(edSt)edSt.value=v.editorStatus||'pend';
   }
+  // Load new fields
+  const dgEl=document.getElementById('vid-data-grav');if(dgEl)dgEl.value=v.dataGrav||'';
+  const deEl=document.getElementById('vid-data-edicao');if(deEl)deEl.value=v.dataEdicao||'';
+  const refEl=document.getElementById('vid-referencia');
+  if(refEl){refEl.checked=!!v.isReferencia;toggleReferencia();}
   openModal('modal-video');
 };
 
@@ -3545,6 +3576,17 @@ window.openEditVideo=(id)=>{
 window.toggleEditorFields=()=>{
   const on=document.getElementById('vid-tem-editor').checked;
   document.getElementById('vid-editor-fields').style.display=on?'block':'none';
+};
+
+window.toggleReferencia=()=>{
+  const isRef=document.getElementById('vid-referencia').checked;
+  const agendaBlock=document.getElementById('vid-agenda-block');
+  if(agendaBlock){
+    agendaBlock.style.opacity=isRef?'0.4':'1';
+    agendaBlock.style.pointerEvents=isRef?'none':'auto';
+  }
+  const banner=document.getElementById('vid-ref-banner');
+  if(banner)banner.style.background=isRef?'rgba(245,166,35,0.18)':'var(--am-bg)';
 };
 
 window.saveVideo=()=>{
@@ -3557,9 +3599,10 @@ window.saveVideo=()=>{
   const link=document.getElementById('vid-link').value.trim();
   const obs=document.getElementById('vid-obs').value.trim();
   const prazo=document.getElementById('vid-prazo').value;
-  const etapa=_selectedEtapa;
+  const dataGrav=document.getElementById('vid-data-grav')?.value||'';
+  const dataEdicao=document.getElementById('vid-data-edicao')?.value||'';
+  const isReferencia=document.getElementById('vid-referencia')?.checked||false;
   const resps=[..._vidRespSelected];
-  // Editor externo
   const temEditor=document.getElementById('vid-tem-editor').checked;
   const editorNome=document.getElementById('vid-editor-nome')?.value.trim()||'';
   const editorVal=parseFloat(document.getElementById('vid-editor-val')?.value)||0;
@@ -3571,70 +3614,84 @@ window.saveVideo=()=>{
   let video;
   if(cpVideoCtx){
     video=S.videos.find(x=>x.id===cpVideoCtx);
-    if(video)Object.assign(video,{titulo,clientId,tipo,copy,legenda,link,obs,prazo,etapa,resps,
-      temEditor,editorNome,editorVal,editorPrazo,editorStatus});
+    if(video)Object.assign(video,{titulo,clientId,tipo,copy,legenda,link,obs,prazo,dataGrav,dataEdicao,isReferencia,resps,temEditor,editorNome,editorVal,editorPrazo,editorStatus});
   } else {
-    video={id:uid(),titulo,clientId,tipo,copy,legenda,link,obs,prazo,etapa,resps,
-      temEditor,editorNome,editorVal,editorPrazo,editorStatus,criadoEm:Date.now(),
-      taskIds:{}}; // taskIds maps etapa → task id
+    video={id:uid(),titulo,clientId,tipo,copy,legenda,link,obs,prazo,dataGrav,dataEdicao,
+      isReferencia,resps,temEditor,editorNome,editorVal,editorPrazo,editorStatus,
+      etapa:'copy',criadoEm:Date.now(),taskIds:{}};
     S.videos.push(video);
   }
 
-  // ── AUTO-CREATE TASKS IN CLIENT ──
-  if(isNew&&video){
-    const client=(S.clients||[]).find(c=>c.id===clientId);
-    if(client){
-      const etapasToCreate=['copy','gravacao','edicao','revisao'];
-      const respMap={
-        copy:resps.find(r=>{const c=(S.colaboradores||[]).find(x=>x.tag===r);return c?.roles?.includes('copywriter')||c?.roles?.includes('social');})||resps[0]||'Todos',
-        gravacao:resps[0]||'Todos',
-        edicao:resps.find(r=>{const c=(S.colaboradores||[]).find(x=>x.tag===r);return c?.roles?.includes('editor');})||editorNome||resps[0]||'Todos',
-        revisao:resps[0]||'Todos',
-      };
-      etapasToCreate.forEach(ep=>{
-        const taskTxt=`[${titulo}] ${ETAPA_LABELS[ep]}`;
-        const taskId=uid();
-        S.tasks[taskId]={id:taskId,txt:taskTxt,r:respMap[ep],done:ep!==etapa&&['copy','gravacao','edicao'].slice(0,['copy','gravacao','edicao','revisao'].indexOf(ep)).length>0?false:false,urgent:false,note:''};
-        if(!client.taskIds)client.taskIds=[];
-        client.taskIds.push(taskId);
-        video.taskIds[ep]=taskId;
-        // Add to rotina
-        const rotinaKey={copy:'copy',gravacao:'traf',edicao:'copy',revisao:'copy'}[ep];
-        if(rotinaKey&&S.rotina[rotinaKey]){
-          S.rotina[rotinaKey].push(taskId);
-        }
-      });
-      // Log in client history
-      if(!client.history)client.history=[];
-      client.history.unshift({id:uid(),type:'note',
-        txt:'Vídeo adicionado à produção: '+titulo+' ('+ETAPA_LABELS[etapa]+')',
-        who:resps[0]||'Todos',ts:Date.now()});
-      dbW('clients',S.clients);
-      dbW('rotina',S.rotina);
-    }
+  const client=(S.clients||[]).find(c=>c.id===clientId);
+
+  // ── AUTO-CREATE TASKS WITH DEADLINES ──
+  if(isNew&&video&&client){
+    if(!client.taskIds)client.taskIds=[];
+    if(!client.history)client.history=[];
+
+    // Find best responsible per role
+    const findResp=(roles)=>resps.find(tag=>{
+      const c=(S.colaboradores||[]).find(x=>x.tag===tag);
+      return roles.some(r=>c?.roles?.includes(r));
+    })||resps[0]||'Todos';
+
+    const taskDefs=[
+      {ep:'copy', label:'Copy',
+       resp:findResp(['copywriter','social','trafego']),
+       prazoTask:'', // copy usually done before scheduling
+       urgent:false},
+      {ep:'gravacao', label:'Gravação',
+       resp:findResp(['videomaker','social']),
+       prazoTask:dataGrav,
+       urgent:!!dataGrav},
+      {ep:'edicao', label:'Edição',
+       resp:temEditor?(editorNome||findResp(['editor'])):findResp(['editor','videomaker']),
+       prazoTask:dataEdicao,
+       urgent:!!dataEdicao},
+      {ep:'revisao', label:'Revisão',
+       resp:resps[0]||'Todos',
+       prazoTask:prazo,
+       urgent:false},
+    ];
+
+    taskDefs.forEach(({ep,label,resp,prazoTask,urgent})=>{
+      if(isReferencia&&ep!=='copy')return; // reference: only copy task
+      const prazoStr=prazoTask?new Date(prazoTask+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}):'';
+      const taskTxt='['+titulo+'] '+label+(prazoStr?' — até '+prazoStr:'');
+      const taskId=uid();
+      S.tasks[taskId]={id:taskId,txt:taskTxt,r:resp,done:false,
+        urgent:!isReferencia&&urgent,note:copy&&ep==='copy'?copy.slice(0,200):'',
+        prazo:prazoTask||''};
+      client.taskIds.push(taskId);
+      video.taskIds[ep]=taskId;
+      // Mirror to rotina
+      const rotinaKey={copy:'copy',gravacao:'traf',edicao:'copy',revisao:'copy'}[ep];
+      if(rotinaKey&&S.rotina&&S.rotina[rotinaKey]){
+        S.rotina[rotinaKey].push(taskId);
+      }
+    });
+
+    client.history.unshift({id:uid(),type:'note',
+      txt:(isReferencia?'[REFERÊNCIA] ':'')+'Vídeo criado: '+titulo+(dataGrav?' | Gravação: '+new Date(dataGrav+'T12:00').toLocaleDateString('pt-BR'):' | Gravação: a definir'),
+      who:resps[0]||'Todos',ts:Date.now()});
+
+    dbW('clients',S.clients);
+    dbW('rotina',S.rotina);
   }
 
-  // ── AUTO-CREATE DESPESA FOR EDITOR ──
+  // ── EDITOR DESPESA ──
   if(temEditor&&editorVal>0){
     if(!S.despesas)S.despesas=[];
-    // Remove old despesa for this video+editor if editing
     if(cpVideoCtx)S.despesas=S.despesas.filter(d=>d.videoId!==cpVideoCtx||d.cat!=='edicao');
     const now=new Date();
     const mes=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    const clientName=(S.clients||[]).find(c=>c.id===clientId)?.name||'';
-    S.despesas.push({
-      id:uid(),
-      videoId:video.id,
-      desc:'Edição de Vídeo — '+titulo,
-      cat:'edicao',
-      detalhe:'Editor: '+editorNome+(clientName?' · Cliente: '+clientName:''),
-      val:editorVal,
-      mes,
-      status:editorStatus,
+    const clientName=client?.name||'';
+    S.despesas.push({id:uid(),videoId:video.id,
+      desc:'Edição — '+titulo,cat:'edicao',
+      detalhe:'Editor: '+editorNome+(clientName?' · '+clientName:''),
+      val:editorVal,mes,status:editorStatus,
       dataPag:editorStatus==='ok'?(editorPrazo||now.toISOString().split('T')[0]):'',
-      recorrente:false,
-      pagoPor:currentColab?.name||''
-    });
+      recorrente:false,pagoPor:currentColab?.name||''});
     dbW('despesas',S.despesas);
   }
 
@@ -3642,7 +3699,17 @@ window.saveVideo=()=>{
   dbW('tasks',S.tasks);
   closeModal('modal-video');
   renderAll();
-  showToast('✓ Vídeo salvo'+(isNew?' — tarefas criadas automaticamente':''));
+  const msg=isNew
+    ?(isReferencia?'✓ Referência salva — sem prazo obrigatório':'✓ Vídeo criado — tarefas e prazos gerados automaticamente')
+    :'✓ Vídeo atualizado';
+  showToast(msg);
+};
+
+window.toggleNext=(el)=>{const n=el.nextElementSibling;if(n)n.style.display=n.style.display==='none'?'block':'none';};
+
+window.filtrarCliente=(clientId)=>{
+  const sel=document.getElementById('cp-client-filter');
+  if(sel){sel.value=clientId;renderConteudo();}
 };
 
 window.setCpFilter=(f)=>{
@@ -3724,20 +3791,77 @@ function renderConteudo(){
   const selectedClient=cpSel?.value||'all';
   let videos=(S.videos||[]);
   if(selectedClient!=='all')videos=videos.filter(v=>v.clientId===selectedClient);
-  if(cpFilter!=='all')videos=videos.filter(v=>v.etapa===cpFilter);
+  if(cpFilter==='referencia')videos=videos.filter(v=>v.isReferencia);
+  else if(cpFilter!=='all')videos=videos.filter(v=>v.etapa===cpFilter&&!v.isReferencia);
+  else videos=videos.filter(v=>!v.isReferencia||(cpFilter==='all')); // all includes references
 
-  // Etapas gerais — task-based
+  // ── CLIENT DASHBOARD ──
   const etapasEl=document.getElementById('cp-etapas-gerais');
   if(etapasEl){
     if(selectedClient==='all'){
-      etapasEl.innerHTML='<div class="empty">Selecione um cliente para ver as etapas gerais.</div>';
+      // Show overview of ALL clients with video activity
+      const clientsWithVids=clients.filter(c=>(S.videos||[]).some(v=>v.clientId===c.id));
+      if(!clientsWithVids.length){
+        etapasEl.innerHTML='<div class="empty">Nenhum cliente com vídeos em produção. Selecione um cliente no filtro acima e clique em "+ Novo vídeo".</div>';
+      } else {
+        const today=new Date().toISOString().split('T')[0];
+        etapasEl.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'+
+          clientsWithVids.map(c=>{
+            const cVids=(S.videos||[]).filter(v=>v.clientId===c.id&&!v.isReferencia);
+            const cRefs=(S.videos||[]).filter(v=>v.clientId===c.id&&v.isReferencia);
+            const atrasados=cVids.filter(v=>v.etapa!=='entregue'&&v.prazo&&v.prazo<today);
+            const proxGrav=cVids.filter(v=>v.dataGrav&&v.dataGrav>=today&&v.etapa!=='entregue').sort((a,b)=>a.dataGrav.localeCompare(b.dataGrav))[0];
+            const emProducao=cVids.filter(v=>v.etapa!=='entregue').length;
+            const entregues=cVids.filter(v=>v.etapa==='entregue').length;
+            const etapaCount={copy:0,gravacao:0,edicao:0,revisao:0,entregue:0};
+            cVids.forEach(v=>{if(etapaCount[v.etapa]!==undefined)etapaCount[v.etapa]++;});
+            return'<div style="background:var(--sf2);border:1px solid '+(atrasados.length>0?'var(--rd-bd)':'var(--bd2)')+';border-radius:var(--r);padding:14px;cursor:pointer" data-cid="'+c.id+'" onclick="filtrarCliente(this.dataset.cid)">'
+              +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+              +'<div style="font-size:13px;font-weight:500;color:var(--tx)">'+c.name+'</div>'
+              +(atrasados.length>0?'<span style="font-size:10px;background:var(--rd-bg);color:var(--rd);border:1px solid var(--rd-bd);padding:2px 7px;border-radius:8px;font-weight:600">⚠ '+atrasados.length+' atrasado'+(atrasados.length>1?'s':'')+'</span>':'')
+              +'</div>'
+              // Pipeline mini
+              +'<div style="display:flex;gap:5px;margin-bottom:10px">'
+              +(['copy','gravacao','edicao','revisao','entregue'].map(ep=>{
+                const cnt=etapaCount[ep];
+                const cls={copy:'cp-stage-copy',gravacao:'cp-stage-grav',edicao:'cp-stage-edicao',revisao:'cp-stage-rev',entregue:'cp-stage-ok'}[ep];
+                const lbl={copy:'Copy',gravacao:'Grav',edicao:'Ed',revisao:'Rev',entregue:'OK'}[ep];
+                return cnt>0?'<span class="cp-stage-pill '+cls+'" style="font-size:10px;padding:2px 7px">'+lbl+' '+cnt+'</span>':'';
+              }).join(''))
+              +'</div>'
+              // Stats row
+              +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px">'
+              +'<div style="text-align:center;background:var(--sf3);border-radius:6px;padding:5px"><div style="font-size:16px;font-weight:600;color:var(--bl)">'+emProducao+'</div><div style="color:var(--mu)">em prod.</div></div>'
+              +'<div style="text-align:center;background:var(--sf3);border-radius:6px;padding:5px"><div style="font-size:16px;font-weight:600;color:var(--gn)">'+entregues+'</div><div style="color:var(--mu)">entregues</div></div>'
+              +'<div style="text-align:center;background:var(--sf3);border-radius:6px;padding:5px"><div style="font-size:16px;font-weight:600;color:var(--am)">'+cRefs.length+'</div><div style="color:var(--mu)">referências</div></div>'
+              +'</div>'
+              +(proxGrav?'<div style="font-size:11px;color:var(--am);margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)">🎬 Próx. gravação: <b>'+new Date(proxGrav.dataGrav+'T12:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'})+'</b> — '+proxGrav.titulo+'</div>':'')
+              +'</div>';
+          }).join('')
+          +'</div>';
+      }
     } else {
+      // Single client view
       const c=clients.find(x=>x.id===selectedClient);
       if(c){
-        const cpTasks=(c.taskIds||[]).map(id=>S.tasks[id]).filter(t=>t&&(t.txt.toLowerCase().includes('copy')||t.txt.toLowerCase().includes('conteú')||t.txt.toLowerCase().includes('video')||t.txt.toLowerCase().includes('vídeo')||t.txt.toLowerCase().includes('grav')));
-        etapasEl.innerHTML=cpTasks.length
-          ?cpTasks.map(t=>`<div class="task">${tkHtml(t.id)}</div>`).join('')
-          :'<div class="empty">Nenhuma tarefa de conteúdo para este cliente. Adicione pela aba Tarefas.</div>';
+        const today=new Date().toISOString().split('T')[0];
+        const cVids=(S.videos||[]).filter(v=>v.clientId===c.id);
+        const atrasados=cVids.filter(v=>!v.isReferencia&&v.etapa!=='entregue'&&v.prazo&&v.prazo<today);
+        const proxGrav=cVids.filter(v=>v.dataGrav&&v.dataGrav>=today&&v.etapa!=='entregue').sort((a,b)=>a.dataGrav.localeCompare(b.dataGrav))[0];
+        // Content tasks from client
+        const cpTasks=(c.taskIds||[]).map(id=>S.tasks[id]).filter(t=>t&&
+          (t.txt.includes('[')||t.txt.toLowerCase().includes('copy')||t.txt.toLowerCase().includes('grav')||t.txt.toLowerCase().includes('edi')));
+        const pendTasks=cpTasks.filter(t=>!t.done);
+        const doneTasks=cpTasks.filter(t=>t.done);
+        etapasEl.innerHTML=
+          // Alert bar if late
+          (atrasados.length>0?'<div style="background:var(--rd-bg);border:1px solid var(--rd-bd);border-radius:var(--rs);padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--rd)">⚠ '+atrasados.length+' vídeo'+(atrasados.length>1?'s atrasados':' atrasado')+': '+atrasados.map(v=>v.titulo).join(', ')+'</div>':'')
+          // Next gravacao
+          +(proxGrav?'<div style="background:var(--am-bg);border:1px solid var(--am-bd);border-radius:var(--rs);padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--am)">🎬 Próxima gravação: <b>'+new Date(proxGrav.dataGrav+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})+'</b><br><span style="font-size:11px;color:var(--mu)">'+proxGrav.titulo+'</span></div>':'')
+          // Pending tasks
+          +(pendTasks.length?'<div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Tarefas de conteúdo pendentes ('+pendTasks.length+')</div>'+pendTasks.map(t=>`<div>${tkHtml(t.id)}</div>`).join(''):'')
+          +(doneTasks.length?'<div style="font-size:11px;color:var(--mu2);margin-top:8px;cursor:pointer" onclick="toggleNext(this)">▼ '+doneTasks.length+' concluídas</div><div style="display:none">'+doneTasks.map(t=>`<div>${tkHtml(t.id)}</div>`).join('')+'</div>':'')
+          +(!cpTasks.length?'<div class="empty">Nenhuma tarefa de conteúdo. Crie um vídeo com "+ Novo vídeo" para gerar automaticamente.</div>':'');
       }
     }
   }
@@ -3767,11 +3891,13 @@ function renderConteudo(){
         <div style="flex:1;min-width:200px">
           <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:5px">${v.titulo}${atrasado?'<span class="late-warn" style="margin-left:6px">ATRASADO</span>':''}</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+            ${v.isReferencia?'<span style="background:var(--am-bg);color:var(--am);border:1px solid var(--am-bd);font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600">📌 REFERÊNCIA</span>':''}
             <span class="cp-stage-pill ${ETAPA_CLASS[v.etapa]||'cp-stage-copy'}">${ETAPA_LABELS[v.etapa]||v.etapa}</span>
             <span class="${typeClass[v.tipo]||'cp-type-feed'}">${typeLabel[v.tipo]||v.tipo}</span>
             <span style="font-size:11px;color:var(--mu)">${clientName}</span>
-            ${v.prazo?`<span style="font-size:10px;color:${atrasado?'var(--rd)':'var(--mu)'}">📅 ${new Date(v.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}
-</span>`:''}
+            ${v.dataGrav?`<span style="font-size:10px;color:var(--am)">🎬 Grav: ${new Date(v.dataGrav+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
+            ${v.dataEdicao?`<span style="font-size:10px;color:var(--pu)">✂️ Ed: ${new Date(v.dataEdicao+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
+            ${v.prazo?`<span style="font-size:10px;color:${atrasado?'var(--rd)':'var(--mu)'}">📦 Entrega: ${new Date(v.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>`:''}
             ${(v.resps||[]).map(r=>`<span class="tag" style="background:var(--sf3)">${r}</span>`).join('')}
           </div>
           ${v.copy?`<div style="font-size:11px;color:var(--mu);margin-bottom:4px;line-height:1.5">📝 ${v.copy.slice(0,120)}${v.copy.length>120?'...':''}</div>`:''}
