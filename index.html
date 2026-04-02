@@ -1592,22 +1592,19 @@ function applyAccessControl(){
 }
 
 function setNavAccess(allowed){
-  const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8};
+  // Show all nav buttons — access controlled at data level not UI
   document.querySelectorAll('.nav-btn').forEach(btn=>{
-    const navId=btn.dataset.nav||btn.getAttribute('onclick')?.match(/goNav\('(\w+)'/)?.[1];
-    if(!navId)return;
-    const isAllowed=allowed.includes(navId);
-    btn.style.display=isAllowed?'flex':'none';
+    btn.style.display='flex';
+    btn.style.removeProperty('display');
   });
-  // If current section is blocked, redirect to overview
-  const activeSec=document.querySelector('.sec.on');
-  if(activeSec){
-    const secId=activeSec.id.replace('sec-','');
-    if(!allowed.includes(secId)){
-      const firstBtn=document.querySelector('.nav-btn[style=""],.nav-btn:not([style*="none"])');
-      if(firstBtn)firstBtn.click();
+  // Only hide financeiro and config for non-admin/non-socio
+  const isRestricted=!allowed.includes('financeiro');
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    const navId=btn.dataset.nav;
+    if(isRestricted&&(navId==='financeiro'||navId==='colaboradores'||navId==='config')){
+      btn.style.display='none';
     }
-  }
+  });
 }
 
 window.connectFirebase=async()=>{
