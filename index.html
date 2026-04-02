@@ -1567,13 +1567,13 @@ function applyAccessControl(){
     const anyHasEmail=(S.colaboradores||[]).some(c=>c.email&&c.email.trim());
     if(!anyHasEmail||totalColabs===0){
       // No colabs have emails yet — must be first admin setup, give full access
-      setNavAccess(['overview','gestao','clientes','rotina','conteudo','financeiro','prospeccao','revisao','colaboradores','config']);
+      setNavAccess(['overview','gestao','clientes','rotina','financeiro','prospeccao','revisao','colaboradores','config','conteudo']);
       // Show a hint toast
       setTimeout(()=>showToast('⚠ Seu e-mail ainda não está vinculado a um colaborador. Vá em Colaboradores e adicione seu e-mail.'),1000);
       return;
     }
     // Email not found in colabs — limited access
-    setNavAccess(['overview','clientes','rotina']);
+    setNavAccess(['overview','clientes','rotina','conteudo']);
     setTimeout(()=>showToast('⚠ E-mail não reconhecido. Peça ao administrador para vincular seu acesso.'),1000);
     return;
   }
@@ -1581,13 +1581,13 @@ function applyAccessControl(){
   const isSocio=currentColab?.isSocio;
   if(isAdm){
     // Admin sees everything
-    setNavAccess(['overview','gestao','clientes','rotina','conteudo','financeiro','prospeccao','revisao','colaboradores','config']);
+    setNavAccess(['overview','gestao','clientes','rotina','financeiro','prospeccao','revisao','colaboradores','config','conteudo']);
   } else if(isSocio){
     // Sócio sees everything except colaboradores and config
-    setNavAccess(['overview','gestao','clientes','rotina','conteudo','financeiro','prospeccao','revisao']);
+    setNavAccess(['overview','gestao','clientes','rotina','financeiro','prospeccao','revisao','conteudo']);
   } else {
     // Colaborador sees operational tabs only
-    setNavAccess(['overview','clientes','rotina','conteudo','prospeccao','revisao']);
+    setNavAccess(['overview','clientes','rotina','prospeccao','revisao','conteudo']);
   }
 }
 
