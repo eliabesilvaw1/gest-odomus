@@ -2254,12 +2254,27 @@ function saveTask(id){dbPatch('tasks',{[id]:S.tasks[id]});}
 function tkHtml(taskId,showActions=true){
   const t=T(taskId);if(!t)return'';
   const acts=showActions?`<div class="task-actions"><button class="tact" onclick="openTaskModal('${taskId}')">editar</button><button class="tact del" onclick="confirmDelTask('${taskId}')">remover</button></div>`:'';
+  // Deadline badge
+  const today=new Date().toISOString().split('T')[0];
+  let prazoBadge='';
+  if(t.prazo&&!t.done){
+    const diff=Math.ceil((new Date(t.prazo+'T12:00')-new Date())/(1000*60*60*24));
+    if(diff<0){
+      prazoBadge='<span class="tag" style="background:var(--rd-bg);color:var(--rd);border-color:var(--rd-bd)">⚠ atrasado '+Math.abs(diff)+'d</span>';
+    } else if(diff===0){
+      prazoBadge='<span class="tag" style="background:var(--rd-bg);color:var(--rd);border-color:var(--rd-bd)">🔴 vence hoje</span>';
+    } else if(diff<=2){
+      prazoBadge='<span class="tag" style="background:var(--am-bg);color:var(--am);border-color:var(--am-bd)">🟡 vence em '+diff+'d</span>';
+    } else {
+      prazoBadge='<span class="tag" style="background:var(--sf3);color:var(--mu)">📅 '+new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+'</span>';
+    }
+  }
   return`<div class="task" id="taskrow-${taskId}">
     <div class="cb${t.done?' on':''}" onclick="toggleTask('${taskId}')"></div>
     <div class="task-body">
       <div class="task-txt${t.done?' done':''}" onclick="openTaskModal('${taskId}')">${t.txt}</div>
       <div class="task-note" onclick="openTaskModal('${taskId}')">${t.note||'+ adicionar anotação'}</div>
-      <div class="task-tags">${tg(t.r)}${t.urgent&&!t.done?'<span class="tag tag-u">urgente</span>':''}${t.done?'<span class="tag tag-ok">feito</span>':''}</div>
+      <div class="task-tags">${tg(t.r)}${t.urgent&&!t.done?'<span class="tag tag-u">urgente</span>':''}${prazoBadge}${t.done?'<span class="tag tag-ok">feito</span>':''}</div>
     </div>${acts}
   </div>`;
 }
@@ -3318,10 +3333,24 @@ function getTasksForDay(dayOfWeek){
   const weekDates2=getWeekDates(calWeekOffset);
   const dayDate2=weekDates2.find(d=>d.getDay()===dayOfWeek);
   const dayDateStr2=dayDate2?dayDate2.toISOString().split('T')[0]:'';
+  const todayStr=new Date().toISOString().split('T')[0];
   (S.clients||[]).filter(c=>c.active!==false).forEach(c=>{
     (c.taskIds||[]).forEach(id=>{
-      const t=S.tasks[id];if(!t)return;
-      if(t.prazo){if(t.prazo===dayDateStr2)add(id);return;}
+      const t=S.tasks[id];if(!t||t.done)return;
+      if(t.prazo){
+        // Show from today until deadline (inclusive), and after deadline if not done
+        // - if prazo >= today: show on all days from today up to prazo
+        // - if prazo < today (overdue): show every day until completed
+        if(t.prazo>=todayStr){
+          // Show on this day if dayDate is between today and prazo
+          if(dayDateStr2>=todayStr&&dayDateStr2<=t.prazo)add(id);
+        } else {
+          // Overdue — show every day
+          add(id);
+        }
+        return;
+      }
+      // No prazo — use cfgTask days config or show every day
       const cfg=(S.cfgTasks||[]).find(ct=>ct.txt.toLowerCase()===t.txt.toLowerCase());
       const days=cfg?.days||[];
       if(!days.length||days.includes(dayOfWeek))add(id);
