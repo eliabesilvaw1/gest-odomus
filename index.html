@@ -1994,11 +1994,23 @@ window.smartAlertClick=(i)=>{
   const a=(window._smartAlerts||[])[i];if(!a)return;
   const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8,conteudo:9};
 
-  // If it has a taskId → open task directly in tarefas tab
-  if(a.taskId&&a.ci!==undefined){
-    activeClient=a.ci;
+  // If it has a taskId → open task directly
+  if(a.taskId){
+    if(a.ci!==undefined)activeClient=a.ci;
+    // If task is in financeiro
+    if(a.nav==='financeiro'){
+      goNav('financeiro',document.querySelectorAll('.nav-btn')[navMap['financeiro']]);
+      setTimeout(()=>openTaskModal(a.taskId),200);
+      return;
+    }
+    // Client task
     goNav('clientes',document.querySelectorAll('.nav-btn')[navMap['clientes']]);
-    setTimeout(()=>{renderClientes();openTaskModal(a.taskId);},150);
+    const savedCi=a.ci;
+    setTimeout(()=>{
+      if(savedCi!==undefined)activeClient=savedCi;
+      renderClientes();
+      setTimeout(()=>openTaskModal(a.taskId),100);
+    },150);
     return;
   }
 
