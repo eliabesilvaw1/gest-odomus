@@ -1239,6 +1239,19 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
   </div>
 </div>
 
+<!-- VIDEO DETAIL PANEL -->
+<div class="fin-panel" id="vid-panel" style="width:480px">
+  <div class="fin-panel-hd">
+    <div style="flex:1;min-width:0">
+      <div class="fin-panel-title" id="vid-panel-title" style="font-size:14px;font-weight:600"></div>
+      <div id="vid-panel-sub" style="font-size:11px;color:var(--mu);margin-top:2px"></div>
+    </div>
+    <button class="fin-panel-close" onclick="closeVidPanel()">×</button>
+  </div>
+  <div class="fin-panel-body" id="vid-panel-body"></div>
+</div>
+<div id="vid-panel-overlay" style="display:none;position:fixed;inset:0;z-index:997" onclick="closeVidPanel()"></div>
+
 <!-- MODAL: Editar sócios -->
 <div class="modal-bg" id="modal-socios">
   <div class="modal" style="width:480px">
@@ -2512,12 +2525,24 @@ function getTasksForDay(dayOfWeek){
     if(!days.length||days.includes(dayOfWeek))add(id);
   });
   // 2. Client tasks — only from active clients
+  const today=new Date();
+  const weekDates=getWeekDates(calWeekOffset);
+  // Find which date matches this dayOfWeek in the current week view
+  const dayDate=weekDates.find(d=>d.getDay()===dayOfWeek);
+  const dayDateStr=dayDate?dayDate.toISOString().split('T')[0]:'';
+
   (S.clients||[]).filter(c=>c.active!==false).forEach(c=>{
     (c.taskIds||[]).forEach(id=>{
       const t=S.tasks[id];if(!t)return;
+      // If task has a specific deadline (prazo), only show on that day
+      if(t.prazo){
+        if(t.prazo===dayDateStr)add(id);
+        return;
+      }
+      // No prazo — use cfgTask days config or show every day
       const cfg=(S.cfgTasks||[]).find(c=>c.txt.toLowerCase()===t.txt.toLowerCase());
       const days=cfg?.days||[];
-      if(!days.length||days.includes(dayOfWeek))add(id); // no days = every day
+      if(!days.length||days.includes(dayOfWeek))add(id);
     });
   });
   // 3. finTasks
@@ -3664,11 +3689,8 @@ window.saveVideo=()=>{
         prazo:prazoTask||''};
       client.taskIds.push(taskId);
       video.taskIds[ep]=taskId;
-      // Mirror to rotina
-      const rotinaKey={copy:'copy',gravacao:'traf',edicao:'copy',revisao:'copy'}[ep];
-      if(rotinaKey&&S.rotina&&S.rotina[rotinaKey]){
-        S.rotina[rotinaKey].push(taskId);
-      }
+      // Don't add to rotina arrays — video tasks appear in calendar via client.taskIds
+      // (they show on their specific prazo date, not repeated daily)
     });
 
     client.history.unshift({id:uid(),type:'note',
@@ -3710,6 +3732,148 @@ window.toggleNext=(el)=>{const n=el.nextElementSibling;if(n)n.style.display=n.st
 window.filtrarCliente=(clientId)=>{
   const sel=document.getElementById('cp-client-filter');
   if(sel){sel.value=clientId;renderConteudo();}
+};
+
+// ── VIDEO DETAIL PANEL ──
+window.openVidPanel=(id)=>{
+  const v=(S.videos||[]).find(x=>x.id===id);if(!v)return;
+  const client=(S.clients||[]).find(c=>c.id===v.clientId);
+  const panel=document.getElementById('vid-panel');
+  const overlay=document.getElementById('vid-panel-overlay');
+  const order=['copy','gravacao','edicao','revisao','entregue'];
+  const today=new Date().toISOString().split('T')[0];
+  const atrasado=v.prazo&&v.etapa!=='entregue'&&v.prazo<today;
+  const typeLabel={trafego:'Tráfego',feed:'Feed',ambos:'Tráf+Feed',reels:'Reels',stories:'Stories'};
+
+  document.getElementById('vid-panel-title').textContent=v.titulo;
+  document.getElementById('vid-panel-sub').textContent=(client?.name||'—')+' · '+(typeLabel[v.tipo]||v.tipo)+(v.isReferencia?' · 📌 Referência':'');
+
+  let html='';
+
+  // Status badge + etapa
+  html+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px">'
+    +'<span class="cp-stage-pill '+ETAPA_CLASS[v.etapa]+'">'+ETAPA_LABELS[v.etapa]+'</span>'
+    +(atrasado?'<span class="late-warn">ATRASADO</span>':'')
+    +(v.isReferencia?'<span style="background:var(--am-bg);color:var(--am);border:1px solid var(--am-bd);font-size:10px;padding:2px 8px;border-radius:8px">📌 Referência</span>':'')
+    +'</div>';
+
+  // Datas
+  if(v.dataGrav||v.dataEdicao||v.prazo){
+    html+='<div style="background:var(--sf2);border-radius:var(--rs);padding:12px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">';
+    const datInfo=[
+      {label:'🎬 Gravação',val:v.dataGrav,color:'var(--am)'},
+      {label:'✂️ Edição',val:v.dataEdicao,color:'var(--pu)'},
+      {label:'📦 Entrega',val:v.prazo,color:atrasado?'var(--rd)':'var(--gn)'},
+    ];
+    datInfo.forEach(d=>{
+      html+='<div style="background:var(--sf3);border-radius:6px;padding:8px">'
+        +'<div style="font-size:10px;color:var(--mu);margin-bottom:3px">'+d.label+'</div>'
+        +'<div style="font-size:12px;font-weight:600;color:'+d.color+'">'
+        +(d.val?new Date(d.val+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit'}):'—')
+        +'</div></div>';
+    });
+    html+='</div>';
+  }
+
+  // Pipeline de etapas
+  html+='<div class="sl">Pipeline de produção</div>';
+  html+='<div style="display:flex;gap:0;margin-bottom:16px;border-radius:var(--rs);overflow:hidden;border:1px solid var(--bd)">';
+  order.forEach((ep,i)=>{
+    const isCurrent=v.etapa===ep;
+    const isDone=order.indexOf(v.etapa)>i||(v.etapa==='entregue');
+    const cls=isDone?'cp-stage-ok':(isCurrent?ETAPA_CLASS[ep]:'');
+    const taskId=v.taskIds&&v.taskIds[ep];
+    const task=taskId?S.tasks[taskId]:null;
+    html+='<div style="flex:1;padding:7px 4px;text-align:center;font-size:10px;font-weight:'+(isCurrent?'600':'400')+';'
+      +'background:'+(isDone?'var(--gn-bg)':isCurrent?'var(--sf2)':'var(--sf)')+';'
+      +'color:'+(isDone?'var(--gn)':isCurrent?'var(--tx)':'var(--mu)')+';'
+      +'border-right:'+(i<order.length-1?'1px solid var(--bd)':'none')+';">'
+      +(isDone?'✓ ':'')
+      +ETAPA_LABELS[ep]
+      +(task&&!task.done&&!isDone?'<div style="width:6px;height:6px;border-radius:50%;background:var(--am);margin:2px auto 0"></div>':'')
+      +'</div>';
+  });
+  html+='</div>';
+
+  // Avançar etapa button
+  if(v.etapa!=='entregue'){
+    const nextEtapa=order[order.indexOf(v.etapa)+1];
+    html+='<button data-vid="'+id+'" onclick="avancarEtapa(this.dataset.vid);openVidPanel(this.dataset.vid)" style="width:100%;padding:10px;background:var(--gn);color:var(--bg);border:none;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;margin-bottom:16px">'
+      +'✓ Concluir '+ETAPA_LABELS[v.etapa]+' → '+ETAPA_LABELS[nextEtapa]
+      +'</button>';
+  } else {
+    html+='<div style="text-align:center;padding:10px;color:var(--gn);font-weight:600;margin-bottom:16px">✓ Vídeo entregue ao cliente</div>';
+  }
+
+  // Tasks checklist
+  if(v.taskIds&&Object.keys(v.taskIds).length){
+    html+='<div class="sl">Tarefas vinculadas</div>';
+    order.forEach(ep=>{
+      const tid=v.taskIds[ep];const t=tid?S.tasks[tid]:null;if(!t)return;
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bd)">'
+        +'<div class="cb'+(t.done?' on':'')+'" data-tid="'+tid+'" data-vid="'+id+'" onclick="toggleTask(this.dataset.tid);openVidPanel(this.dataset.vid)" style="flex-shrink:0"></div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:12px;color:var(--tx);'+(t.done?'text-decoration:line-through;color:var(--mu)':'')+'">'+t.txt+'</div>'
+        +(t.prazo?'<div style="font-size:10px;color:var(--mu);margin-top:1px">📅 '+new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+'</div>':'')
+        +'</div>'
+        +'<span class="cp-stage-pill '+ETAPA_CLASS[ep]+'" style="font-size:9px;padding:1px 6px">'+ETAPA_LABELS[ep]+'</span>'
+        +'</div>';
+    });
+    html+='<div style="margin-top:8px"></div>';
+  }
+
+  // Copy
+  if(v.copy){
+    html+='<div class="sl">Copy / Roteiro</div>';
+    html+='<div style="background:var(--sf2);border-radius:var(--rs);padding:12px;font-size:12px;color:var(--tx);line-height:1.6;white-space:pre-wrap;margin-bottom:14px;max-height:160px;overflow-y:auto">'+v.copy+'</div>';
+    html+='<button data-txt="'+encodeURIComponent(v.copy||'')+'" onclick="navigator.clipboard.writeText(decodeURIComponent(this.dataset.txt))" style="font-size:11px;color:var(--bl);background:transparent;border:1px solid var(--bl-bd);border-radius:6px;padding:3px 10px;cursor:pointer;margin-bottom:14px">📋 Copiar copy</button>';
+  }
+
+  // Legenda
+  if(v.legenda){
+    html+='<div class="sl">Legenda</div>';
+    html+='<div style="background:var(--sf2);border-radius:var(--rs);padding:12px;font-size:12px;color:var(--tx);line-height:1.6;white-space:pre-wrap;margin-bottom:8px;max-height:120px;overflow-y:auto">'+v.legenda+'</div>';
+    html+='<button data-txt="'+encodeURIComponent(v.legenda||'')+'" onclick="navigator.clipboard.writeText(decodeURIComponent(this.dataset.txt))" style="font-size:11px;color:var(--bl);background:transparent;border:1px solid var(--bl-bd);border-radius:6px;padding:3px 10px;cursor:pointer;margin-bottom:14px">📋 Copiar legenda</button>';
+  }
+
+  // Link nuvem
+  if(v.link){
+    html+='<div class="sl">Arquivo</div>';
+    html+='<a href="'+v.link+'" target="_blank" style="display:block;font-size:12px;color:var(--bl);text-decoration:underline;margin-bottom:14px;word-break:break-all">☁ '+v.link+'</a>';
+  }
+
+  // Editor info
+  if(v.temEditor&&v.editorNome){
+    html+='<div class="sl">Editor externo</div>';
+    html+='<div style="background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:var(--rs);padding:10px 12px;margin-bottom:14px;font-size:12px">'
+      +'<div style="font-weight:500;color:var(--pu);margin-bottom:4px">✂️ '+v.editorNome+'</div>'
+      +'<div style="color:var(--mu)">Valor: <b style="color:var(--tx)">R$ '+parseFloat(v.editorVal||0).toLocaleString('pt-BR')+'</b>'
+      +(v.editorPrazo?' · Entrega: <b>'+new Date(v.editorPrazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+'</b>':'')
+      +' · <span style="color:'+(v.editorStatus==='ok'?'var(--gn)':'var(--am)')+'">'+( v.editorStatus==='ok'?'✓ Pago':'⏳ Aguardando')+'</span></div>'
+      +'</div>';
+  }
+
+  // Edit button
+  html+='<button data-vid="'+id+'" onclick="closeVidPanel();openEditVideo(this.dataset.vid)" style="width:100%;padding:9px;background:transparent;border:1px solid var(--bd2);border-radius:var(--rs);font-size:12px;cursor:pointer;color:var(--mu);font-family:DM Sans,sans-serif">✏ Editar vídeo</button>';
+
+  document.getElementById('vid-panel-body').innerHTML=html;
+  panel.classList.add('open');
+  overlay.style.display='block';
+};
+
+window.closeVidPanel=()=>{
+  document.getElementById('vid-panel').classList.remove('open');
+  document.getElementById('vid-panel-overlay').style.display='none';
+};
+
+// Toggle client filter (click = filter, second click = reset)
+let _lastClientFilter='all';
+window.filtrarClienteToggle=(clientId)=>{
+  const sel=document.getElementById('cp-client-filter');
+  if(!sel)return;
+  if(sel.value===clientId){sel.value='all';_lastClientFilter='all';}
+  else{sel.value=clientId;_lastClientFilter=clientId;}
+  renderConteudo();
 };
 
 window.setCpFilter=(f)=>{
@@ -3815,7 +3979,7 @@ function renderConteudo(){
             const entregues=cVids.filter(v=>v.etapa==='entregue').length;
             const etapaCount={copy:0,gravacao:0,edicao:0,revisao:0,entregue:0};
             cVids.forEach(v=>{if(etapaCount[v.etapa]!==undefined)etapaCount[v.etapa]++;});
-            return'<div style="background:var(--sf2);border:1px solid '+(atrasados.length>0?'var(--rd-bd)':'var(--bd2)')+';border-radius:var(--r);padding:14px;cursor:pointer" data-cid="'+c.id+'" onclick="filtrarCliente(this.dataset.cid)">'
+            return'<div style="background:var(--sf2);border:1px solid '+(atrasados.length>0?'var(--rd-bd)':'var(--bd2)')+';border-radius:var(--r);padding:14px;cursor:pointer" data-cid="'+c.id+'" onclick="filtrarClienteToggle(this.dataset.cid)">'
               +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
               +'<div style="font-size:13px;font-weight:500;color:var(--tx)">'+c.name+'</div>'
               +(atrasados.length>0?'<span style="font-size:10px;background:var(--rd-bg);color:var(--rd);border:1px solid var(--rd-bd);padding:2px 7px;border-radius:8px;font-weight:600">⚠ '+atrasados.length+' atrasado'+(atrasados.length>1?'s':'')+'</span>':'')
@@ -3886,9 +4050,9 @@ function renderConteudo(){
     const typeClass={trafego:'cp-type-trafego',feed:'cp-type-feed',ambos:'cp-type-ambos',reels:'cp-type-feed',stories:'cp-type-trafego'};
     const order=['copy','gravacao','edicao','revisao','entregue'];
     const canAdvance=v.etapa!=='entregue';
-    return`<div class="cp-video-card" style="${atrasado?'border-color:var(--rd-bd)':''}">
-      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
-        <div style="flex:1;min-width:200px">
+    return`<div class="cp-video-card" style="${atrasado?'border-color:var(--rd-bd)':''}" onclick="openVidPanel('${v.id}')" style="cursor:pointer">
+      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap" onclick="openVidPanel('${v.id}')">
+        <div style="flex:1;min-width:200px;cursor:pointer">
           <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:5px">${v.titulo}${atrasado?'<span class="late-warn" style="margin-left:6px">ATRASADO</span>':''}</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
             ${v.isReferencia?'<span style="background:var(--am-bg);color:var(--am);border:1px solid var(--am-bd);font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600">📌 REFERÊNCIA</span>':''}
@@ -3904,11 +4068,11 @@ function renderConteudo(){
           ${v.link?`<a href="${v.link}" target="_blank" style="font-size:11px;color:var(--bl);text-decoration:underline">☁ Ver arquivo na nuvem</a>`:''}
           ${v.temEditor&&v.editorNome?`<div style="font-size:11px;color:var(--pu);margin-top:4px;background:var(--pu-bg);padding:3px 8px;border-radius:6px;display:inline-block">✂️ Editor: ${v.editorNome} · ${v.editorVal?'R$ '+parseFloat(v.editorVal).toLocaleString('pt-BR'):'—'} · ${v.editorStatus==='ok'?'<span style=\"color:var(--gn)\">✓ Pago</span>':'<span style=\"color:var(--am)\">⏳ Aguardando</span>'}</div>`:''}
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
-          ${canAdvance?`<button class="c-btn" style="font-size:11px;padding:4px 10px" onclick="avancarEtapa('${v.id}')">Avançar → ${ETAPA_LABELS[order[order.indexOf(v.etapa)+1]]||''}</button>`:'<span style="font-size:11px;color:var(--gn);font-weight:500">✓ Entregue</span>'}
-          <button class="ghost" style="font-size:11px;padding:3px 8px" onclick="openEditVideo('${v.id}')">Editar</button>
-          <button class="ghost" style="font-size:11px;padding:3px 8px;color:var(--rd);border-color:var(--rd-bd)" onclick="delVideo('${v.id}')">Remover</button>
         </div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
+          ${v.etapa==='entregue'?'<span style="font-size:11px;color:var(--gn);font-weight:500;background:var(--gn-bg);padding:3px 8px;border-radius:6px">✓ Entregue</span>':`<span class="cp-stage-pill ${ETAPA_CLASS[v.etapa]}" style="font-size:10px">${ETAPA_LABELS[v.etapa]}</span>`}
+          <span style="font-size:10px;color:var(--mu2);margin-top:2px">→ clique para abrir</span>
+          <button class="ghost" style="font-size:10px;padding:2px 6px;color:var(--rd);border-color:var(--rd-bd)" onclick="event.stopPropagation();delVideo('${v.id}')">×</button>
       </div>
     </div>`;
   }).join('');
