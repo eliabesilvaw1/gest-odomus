@@ -1952,7 +1952,7 @@ function renderOverview(){
     const done=ids.filter(id=>{const t=T(id);return t&&t.done;}).length;
     const pct=ids.length?Math.round(done/ids.length*100):0;
     const topIssue=health.issues[0];
-    return'<div class="health-card health-border-'+health.level+'" onclick="goToGestao('+i+')">'
+    return'<div class="health-card health-border-'+health.level+'" onclick="goToClientTarefas('+i+')">'
       +'<div class="health-dot" style="background:'+dotColor+'"></div>'
       +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
@@ -2016,6 +2016,13 @@ window.smartAlertClick=(i)=>{
 window.alertClick=(i)=>{
   const a=(window._alertItems||[])[i];if(!a||!a.nav)return;
   const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8,conteudo:9};
+  // If it has a task — go to tarefas tab directly
+  if(a.taskId&&a.ci!==undefined){
+    activeClient=a.ci;
+    goNav('clientes',document.querySelectorAll('.nav-btn')[navMap['clientes']]);
+    setTimeout(()=>{renderClientes();openTaskModal(a.taskId);},150);
+    return;
+  }
   goNav(a.nav,document.querySelectorAll('.nav-btn')[navMap[a.nav]||0]);
   if(a.nav==='gestao'&&a.ci!==undefined){activeGestaoClient=a.ci;renderGestao();}
   if(a.nav==='clientes'&&a.ci!==undefined){activeClient=a.ci;renderClientes();}
@@ -2024,6 +2031,11 @@ window.alertClick=(i)=>{
 
 // ── GESTÃO DE CLIENTES (nova aba com ficha + histórico) ──
 window.goToGestao=(i)=>{activeGestaoClient=i;goNav('gestao',document.querySelectorAll('.nav-btn')[1]);renderGestao();};
+window.goToClientTarefas=(i)=>{
+  activeClient=i;
+  goNav('clientes',document.querySelectorAll('.nav-btn')[2]);
+  renderClientes();
+};
 
 let gestaoShowInactive=false;
 
