@@ -700,7 +700,7 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
       <div class="card">
         <div class="card-head"><div class="card-title"><div class="cdot cdot-a"></div>Tarefas financeiras da semana</div></div>
         <div id="fin-tasks"></div>
-        <div class="input-row"><input class="ti" id="fin-new" placeholder="Nova tarefa financeira..."/><select class="sel" id="fin-resp"><option>Alonso</option><option>Duda</option><option>Eliabe</option><option>Todos</option></select><button class="go" onclick="addFinTask()">Adicionar</button></div>
+        <div class="input-row"><input class="ti" id="fin-new" placeholder="Nova tarefa financeira..."/><select class="sel" id="fin-resp"></select><button class="go" onclick="addFinTask()">Adicionar</button></div>
       </div>
     </div>
 
@@ -719,7 +719,7 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
       <div class="card">
         <div class="card-head"><div class="card-title"><div class="cdot cdot-g"></div>Revisão interna de processos</div></div>
         <div id="proc-tasks"></div>
-        <div class="input-row"><input class="ti" id="proc-new" placeholder="Nova tarefa de processo..."/><select class="sel" id="proc-resp"><option>Todos</option><option>Duda</option><option>Alonso</option><option>Eliabe</option></select><button class="go" onclick="addProcTask()">+</button></div>
+        <div class="input-row"><input class="ti" id="proc-new" placeholder="Nova tarefa de processo..."/><select class="sel" id="proc-resp"></select><button class="go" onclick="addProcTask()">+</button></div>
       </div>
     </div>
 
@@ -732,7 +732,7 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
         <div id="rev-list"></div>
         <div class="input-row" style="margin-top:8px">
           <input class="ti" id="rev-input" placeholder="Novo item de pauta..."/>
-          <select class="sel" id="rev-who"><option>Todos</option><option>Alonso</option><option>Duda</option><option>Eliabe</option></select>
+          <select class="sel" id="rev-who"></select>
           <input class="ti" id="rev-time" placeholder="Tempo" style="max-width:72px"/>
           <button class="go" onclick="addRevItem()">Adicionar</button>
         </div>
@@ -1211,6 +1211,19 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
     <div class="form-actions"><button class="ghost" onclick="closeModal('modal-video')">Cancelar</button><button class="go" onclick="saveVideo()">Salvar vídeo</button></div>
   </div>
 </div>
+
+<!-- VIDEO DETAIL PANEL -->
+<div class="fin-panel" id="vid-panel" style="width:500px">
+  <div class="fin-panel-hd">
+    <div style="flex:1;min-width:0">
+      <div class="fin-panel-title" id="vid-panel-title" style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="vid-panel-sub" style="font-size:11px;color:var(--mu);margin-top:2px"></div>
+    </div>
+    <button class="fin-panel-close" onclick="closeVidPanel()">×</button>
+  </div>
+  <div class="fin-panel-body" id="vid-panel-body" style="overflow-y:auto;max-height:calc(100vh - 80px)"></div>
+</div>
+<div id="vid-panel-overlay" style="display:none;position:fixed;inset:0;z-index:997" onclick="closeVidPanel()"></div>
 
 <!-- MODAL: Editar sócios -->
 <div class="modal-bg" id="modal-socios">
@@ -1826,9 +1839,20 @@ function renderOverview(){
   const grid=document.getElementById('ov-rot-grid');
   if(grid){
     const todosIds=allRotIds.filter(id=>{const t=T(id);return t&&t.r==='Todos';});
+    // Include video tasks assigned to each colab
+    const today=new Date().toISOString().split('T')[0];
     grid.innerHTML=activeColabs.map(c=>{
-      const ids=allRotIds.filter(id=>{const t=T(id);if(!t)return false;return t.r===c.tag||t.r.includes(c.tag);});
-      const allIds=[...new Set([...todosIds,...ids])];
+      const rotIds=allRotIds.filter(id=>{const t=T(id);if(!t)return false;return t.r===c.tag||t.r.includes(c.tag);});
+      // Add video tasks where this colab is responsible for current etapa
+      const vidIds=[];
+      (S.videos||[]).forEach(v=>{
+        if(v.etapa==='entregue')return;
+        const tid=v.taskIds&&v.taskIds[v.etapa];
+        if(!tid)return;
+        const t=S.tasks[tid];
+        if(t&&!t.done&&(t.r===c.tag||t.r.includes(c.tag)))vidIds.push(tid);
+      });
+      const allIds=[...new Set([...todosIds,...rotIds,...vidIds])];
       return'<div><div class="sl" style="color:'+(c.textColor||'var(--mu)')+'">'+c.tag+'</div>'
         +(allIds.length?allIds.map(id=>tkHtml(id)).join(''):'<div class="empty">Sem tarefas</div>')+'</div>';
     }).join('');
@@ -1969,7 +1993,7 @@ function renderGestao(){
       ${ids.length?ids.map(id=>tkHtml(id)).join(''):'<div class="empty">Nenhuma tarefa. Use "+ Tarefas padrão" ou adicione abaixo.</div>'}
       <div class="input-row" style="margin-top:6px">
         <input class="ti" id="gst-new-task" placeholder="Adicionar tarefa manual..."/>
-        <select class="sel" id="gst-new-resp"><option>Duda</option><option>Alonso</option><option>Eliabe</option><option>Todos</option></select>
+        <select class="sel" id="gst-new-resp"></select>
         <button class="go" onclick="addGestaoTask()">Adicionar</button>
       </div>
     </div>
@@ -2137,7 +2161,7 @@ function renderClientes(){
       ${ids.length?ids.map(id=>tkHtml(id)).join(''):'<div class="empty">Nenhuma tarefa. Use "+ Tarefas padrão" ou adicione abaixo.</div>'}
       <div class="input-row" style="margin-top:6px">
         <input class="ti" id="cl-new" placeholder="Adicionar tarefa manual..."/>
-        <select class="sel" id="cl-resp"><option>Duda</option><option>Alonso</option><option>Eliabe</option><option>Todos</option></select>
+        <select class="sel" id="cl-resp"></select>
         <button class="go" onclick="addClientTask()">Adicionar</button>
       </div>
     </div>`;
@@ -3627,6 +3651,144 @@ window.saveVideo=()=>{
   showToast(isNew?(isReferencia?'✓ Referência salva':'✓ Vídeo criado — tarefas geradas automaticamente'):'✓ Vídeo atualizado');
 };
 
+window.closeVidPanel=()=>{
+  document.getElementById('vid-panel')?.classList.remove('open');
+  const ov=document.getElementById('vid-panel-overlay');if(ov)ov.style.display='none';
+};
+
+window.toggleNext=(el)=>{const n=el.nextElementSibling;if(n)n.style.display=n.style.display==='none'?'block':'none';};
+
+window.filtrarClienteToggle=(cid)=>{
+  const sel=document.getElementById('cp-client-filter');if(!sel)return;
+  sel.value=sel.value===cid?'all':cid;
+  renderConteudo();
+};
+
+window.openVidPanel=(id)=>{
+  const v=(S.videos||[]).find(x=>x.id===id);if(!v)return;
+  const client=(S.clients||[]).find(c=>c.id===v.clientId);
+  const order=['copy','gravacao','edicao','revisao','entregue'];
+  const today=new Date().toISOString().split('T')[0];
+  const atrasado=v.prazo&&v.etapa!=='entregue'&&v.prazo<today;
+  const typeLabel={trafego:'Tráfego',feed:'Feed',ambos:'Tráf+Feed',reels:'Reels',stories:'Stories'};
+  document.getElementById('vid-panel-title').textContent=v.titulo;
+  document.getElementById('vid-panel-sub').textContent=(client?.name||'—')+' · '+(typeLabel[v.tipo]||v.tipo)+(v.isReferencia?' · 📌 Referência':'');
+  let html='';
+  // Status
+  html+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">'
+    +'<span class="cp-stage-pill '+(ETAPA_CLASS[v.etapa]||'cp-stage-copy')+'">'+ETAPA_LABELS[v.etapa]+'</span>'
+    +(atrasado?'<span style="font-size:10px;background:var(--rd-bg);color:var(--rd);border:1px solid var(--rd-bd);padding:2px 8px;border-radius:6px;font-weight:600">ATRASADO</span>':'')
+    +(v.isReferencia?'<span style="background:var(--am-bg);color:var(--am);border:1px solid var(--am-bd);font-size:10px;padding:2px 8px;border-radius:8px">📌 Referência</span>':'')
+    +'</div>';
+  // Datas
+  const datInfo=[['🎬 Gravação',v.dataGrav,'var(--am)'],['✂️ Edição',v.dataEdicao,'var(--pu)'],['📦 Entrega',v.prazo,atrasado?'var(--rd)':'var(--gn)']];
+  if(v.dataGrav||v.dataEdicao||v.prazo){
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">';
+    datInfo.forEach(([lbl,val,col])=>{
+      html+='<div style="background:var(--sf2);border-radius:6px;padding:8px;text-align:center">'
+        +'<div style="font-size:10px;color:var(--mu);margin-bottom:3px">'+lbl+'</div>'
+        +'<div style="font-size:12px;font-weight:600;color:'+col+'">'+(val?new Date(val+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit'}):'—')+'</div>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
+  // Pipeline
+  html+='<div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Pipeline</div>';
+  html+='<div style="display:flex;gap:0;margin-bottom:14px;border-radius:var(--rs);overflow:hidden;border:1px solid var(--bd)">';
+  order.forEach((ep,i)=>{
+    const isCurrent=v.etapa===ep;
+    const isDone=order.indexOf(v.etapa)>i;
+    html+='<div style="flex:1;padding:6px 4px;text-align:center;font-size:10px;font-weight:'+(isCurrent?'600':'400')+';'
+      +'background:'+(isDone?'var(--gn-bg)':isCurrent?'var(--sf2)':'var(--sf)')+';'
+      +'color:'+(isDone?'var(--gn)':isCurrent?'var(--tx)':'var(--mu)')+';'
+      +'border-right:'+(i<order.length-1?'1px solid var(--bd)':'none')+';">'
+      +(isDone?'✓ ':'')+ETAPA_LABELS[ep]+'</div>';
+  });
+  html+='</div>';
+  // Avançar / Retroceder etapa
+  if(v.etapa!=='entregue'){
+    const next=order[order.indexOf(v.etapa)+1];
+    html+='<button data-vid="'+id+'" onclick="avancarEtapa(this.dataset.vid)" style="width:100%;padding:9px;background:var(--gn);color:var(--bg);border:none;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;margin-bottom:8px">✓ Concluir '+ETAPA_LABELS[v.etapa]+' → '+ETAPA_LABELS[next]+'</button>';
+  }
+  if(order.indexOf(v.etapa)>0){
+    const prev=order[order.indexOf(v.etapa)-1];
+    html+='<button data-vid="'+id+'" onclick="retrocederEtapa(this.dataset.vid)" style="width:100%;padding:7px;background:transparent;border:1px solid var(--am-bd);color:var(--am);border-radius:var(--rs);font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;margin-bottom:14px">↩ Retroceder para '+ETAPA_LABELS[prev]+'</button>';
+  }
+  // Tasks checklist
+  if(v.taskIds&&Object.keys(v.taskIds).length){
+    html+='<div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Tarefas</div>';
+    order.forEach(ep=>{
+      const tid=v.taskIds[ep];const t=tid?S.tasks[tid]:null;if(!t)return;
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bd)">'
+        +'<div class="cb'+(t.done?' on':'')+'" data-tid="'+tid+'" data-vid="'+id+'" onclick="toggleTask(this.dataset.tid)" style="flex-shrink:0"></div>'
+        +'<div style="flex:1;min-width:0"><div style="font-size:12px;color:var(--tx);'+(t.done?'text-decoration:line-through;color:var(--mu)':'')+'">'+t.txt+'</div>'
+        +(t.prazo?'<div style="font-size:10px;color:var(--mu);margin-top:1px">📅 '+new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+'</div>':'')+'</div>'
+        +'<span class="cp-stage-pill '+(ETAPA_CLASS[ep]||'')+'" style="font-size:9px;padding:1px 6px">'+ETAPA_LABELS[ep]+'</span></div>';
+    });
+    html+='<div style="margin-top:8px"></div>';
+  }
+  // Copy
+  if(v.copy){
+    html+='<div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;margin-top:4px">Copy / Roteiro</div>';
+    html+='<div style="background:var(--sf2);border-radius:var(--rs);padding:12px;font-size:12px;color:var(--tx);line-height:1.6;white-space:pre-wrap;margin-bottom:8px;max-height:150px;overflow-y:auto">'+v.copy+'</div>';
+    html+='<button data-txt="'+encodeURIComponent(v.copy||'')+'" onclick="navigator.clipboard.writeText(decodeURIComponent(this.dataset.txt));showToast(\'Copiado!\')" style="font-size:11px;color:var(--bl);background:transparent;border:1px solid var(--bl-bd);border-radius:6px;padding:3px 10px;cursor:pointer;margin-bottom:12px">📋 Copiar copy</button>';
+  }
+  // Legenda
+  if(v.legenda){
+    html+='<div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Legenda</div>';
+    html+='<div style="background:var(--sf2);border-radius:var(--rs);padding:12px;font-size:12px;color:var(--tx);line-height:1.6;white-space:pre-wrap;margin-bottom:8px;max-height:100px;overflow-y:auto">'+v.legenda+'</div>';
+    html+='<button data-txt="'+encodeURIComponent(v.legenda||'')+'" onclick="navigator.clipboard.writeText(decodeURIComponent(this.dataset.txt));showToast(\'Copiado!\')" style="font-size:11px;color:var(--bl);background:transparent;border:1px solid var(--bl-bd);border-radius:6px;padding:3px 10px;cursor:pointer;margin-bottom:12px">📋 Copiar legenda</button>';
+  }
+  // Link
+  if(v.link){
+    html+='<div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Arquivo</div>';
+    html+='<a href="'+v.link+'" target="_blank" style="display:block;font-size:12px;color:var(--bl);text-decoration:underline;margin-bottom:12px;word-break:break-all">☁ '+v.link+'</a>';
+  }
+  // Editor info
+  if(v.temEditor&&v.editorNome){
+    html+='<div style="background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:var(--rs);padding:10px 12px;margin-bottom:12px;font-size:12px">'
+      +'<div style="font-weight:500;color:var(--pu);margin-bottom:4px">✂️ '+v.editorNome+'</div>'
+      +'<div style="color:var(--mu)">R$ '+parseFloat(v.editorVal||0).toLocaleString('pt-BR')
+      +(v.editorPrazo?' · Entrega: '+new Date(v.editorPrazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}):'')
+      +' · <span style="color:'+(v.editorStatus==='ok'?'var(--gn)':'var(--am)')+'">'+( v.editorStatus==='ok'?'✓ Pago':'⏳ Aguardando')+'</span></div>'
+      +'</div>';
+  }
+  // Edit button
+  html+='<button data-vid="'+id+'" onclick="closeVidPanel();openEditVideo(this.dataset.vid)" style="width:100%;padding:9px;background:transparent;border:1px solid var(--bd2);border-radius:var(--rs);font-size:12px;cursor:pointer;color:var(--mu);font-family:DM Sans,sans-serif">✏ Editar vídeo</button>';
+
+  document.getElementById('vid-panel-body').innerHTML=html;
+  const panel=document.getElementById('vid-panel');
+  panel.classList.add('open');
+  const ov=document.getElementById('vid-panel-overlay');if(ov)ov.style.display='block';
+};
+
+// Retroceder etapa
+window.retrocederEtapa=(id)=>{
+  const v=(S.videos||[]).find(x=>x.id===id);if(!v)return;
+  const order=['copy','gravacao','edicao','revisao','entregue'];
+  const idx=order.indexOf(v.etapa);
+  if(idx<=0)return;
+  const prevEtapa=order[idx-1];
+  showConfirm({icon:'↩',title:'Retroceder etapa?',
+    msg:'O vídeo <b>'+v.titulo+'</b> voltará para <b>'+ETAPA_LABELS[prevEtapa]+'</b>.<br><span style="color:var(--mu)">A tarefa desta etapa será reativada como pendente.</span>',
+    okLabel:'Retroceder',okClass:'warning',
+    onOk:()=>{
+      v.etapa=prevEtapa;
+      const writes={videos:S.videos};
+      // Reactivate prev task
+      const prevTid=v.taskIds&&v.taskIds[prevEtapa];
+      if(prevTid&&S.tasks[prevTid]){S.tasks[prevTid].done=false;writes.tasks=S.tasks;}
+      // Undo current task done state
+      const curTid=v.taskIds&&v.taskIds[order[idx]];
+      if(curTid&&S.tasks[curTid]){S.tasks[curTid].done=false;if(!writes.tasks)writes.tasks=S.tasks;}
+      dbWMulti(writes);
+      renderAll();
+      openVidPanel(id);
+      showToast('↩ Retrocedido para '+ETAPA_LABELS[prevEtapa]);
+    }
+  });
+};
+
 window.setCpFilter=(f)=>{
   cpFilter=f;
   document.querySelectorAll('[id^=cpf-]').forEach(b=>{
@@ -3716,13 +3878,14 @@ function renderConteudo(){
 
   listEl.innerHTML=videos.map(v=>{
     const clientName=(S.clients||[]).find(c=>c.id===v.clientId)?.name||'—';
+    const vidId=v.id;
     const today=new Date().toISOString().split('T')[0];
     const atrasado=v.prazo&&v.etapa!=='entregue'&&v.prazo<today;
     const typeLabel={trafego:'Tráfego',feed:'Feed',ambos:'Tráf+Feed',reels:'Reels',stories:'Stories'};
     const typeClass={trafego:'cp-type-trafego',feed:'cp-type-feed',ambos:'cp-type-ambos',reels:'cp-type-feed',stories:'cp-type-trafego'};
     const order=['copy','gravacao','edicao','revisao','entregue'];
     const canAdvance=v.etapa!=='entregue';
-    return`<div class="cp-video-card" style="${atrasado?'border-color:var(--rd-bd)':''}">
+    return`<div class="cp-video-card" style="cursor:pointer;${atrasado?'border-color:var(--rd-bd)':''}" onclick="openVidPanel('${vidId}')">
       <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
         <div style="flex:1;min-width:200px">
           <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:5px">${v.titulo}${atrasado?'<span class="late-warn" style="margin-left:6px">ATRASADO</span>':''}</div>
@@ -3737,10 +3900,12 @@ function renderConteudo(){
           ${v.copy?`<div style="font-size:11px;color:var(--mu);margin-bottom:4px;line-height:1.5">📝 ${v.copy.slice(0,120)}${v.copy.length>120?'...':''}</div>`:''}
           ${v.link?`<a href="${v.link}" target="_blank" style="font-size:11px;color:var(--bl);text-decoration:underline">☁ Ver arquivo na nuvem</a>`:''}
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
-          ${canAdvance?`<button class="c-btn" style="font-size:11px;padding:4px 10px" onclick="avancarEtapa('${v.id}')">Avançar → ${ETAPA_LABELS[order[order.indexOf(v.etapa)+1]]||''}</button>`:'<span style="font-size:11px;color:var(--gn);font-weight:500">✓ Entregue</span>'}
-          <button class="ghost" style="font-size:11px;padding:3px 8px" onclick="openEditVideo('${v.id}')">Editar</button>
-          <button class="ghost" style="font-size:11px;padding:3px 8px;color:var(--rd);border-color:var(--rd-bd)" onclick="delVideo('${v.id}')">Remover</button>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0" onclick="event.stopPropagation()">
+          ${v.etapa==='entregue'
+            ?'<span style="font-size:11px;color:var(--gn);font-weight:500;background:var(--gn-bg);padding:3px 8px;border-radius:6px">✓ Entregue</span>'
+            :`<span class="cp-stage-pill ${ETAPA_CLASS[v.etapa]}" style="font-size:10px">${ETAPA_LABELS[v.etapa]}</span>`}
+          <span style="font-size:10px;color:var(--mu2)">→ clique para abrir</span>
+          <button class="ghost" style="font-size:10px;padding:2px 6px;color:var(--rd);border-color:var(--rd-bd)" onclick="event.stopPropagation();delVideo('${v.id}')">×</button>
         </div>
       </div>
     </div>`;
@@ -4370,8 +4535,19 @@ function showToast(msg){
 
 // ── RENDER ALL ──
 window.renderClientes=renderClientes;
+function populateRespSelects(){
+  const colabs=(S.colaboradores||[]);
+  const opts='<option value="Todos">Todos</option>'+colabs.map(c=>'<option value="'+c.tag+'">'+c.tag+'</option>').join('');
+  ['fin-resp','proc-resp','rev-who','gst-new-resp','cl-resp'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const cur=el.value;el.innerHTML=opts;
+    if([...el.options].some(o=>o.value===cur))el.value=cur;
+  });
+}
+
 window.renderAll=function(){
   if(!S)return;
+  populateRespSelects();
   renderOverview();renderGestao();renderClientes();renderRotina();renderFinanceiro();renderProspeccao();renderRevisao();renderColaboradores();renderConfig();renderConteudo();
 };
 
