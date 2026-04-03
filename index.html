@@ -1962,11 +1962,16 @@ function renderOverview(){
     // Tarefas urgentes
     (c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done){smartAlerts.push({icon:'🔥',txt:'<b>'+c.name+'</b> — '+t.txt,level:'critico',nav:'clientes',ci,taskId:id,goTab:'tarefas'});al++;}});
   });
-  // Pagamentos
+  // Pagamentos — only for active clients
   const mesAtual=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
   const diaHoje=new Date().getDate();
+  const activeClientNames=new Set(activeClients.map(c=>c.name));
+  const activeClientIds=new Set(activeClients.map(c=>c.id));
   (S.fin||[]).forEach(f=>{
     if(f.status==='ok'||f.mes!==mesAtual)return;
+    // Skip if client no longer exists
+    if(f.clientId&&!activeClientIds.has(f.clientId))return;
+    if(!f.clientId&&!activeClientNames.has(f.client))return;
     const v=parseInt(f.venc||0);if(!v)return;
     if(diaHoje>v){smartAlerts.push({icon:'💰',txt:'<b>'+f.client+'</b> — pagamento em atraso (venceu dia '+v+')',level:'critico',nav:'financeiro'});al++;}
     else if(v-diaHoje<=3){smartAlerts.push({icon:'💰',txt:'<b>'+f.client+'</b> — pagamento vence em '+(v-diaHoje)+' dia(s) (dia '+v+')',level:'atencao',nav:'financeiro'});}
@@ -2517,7 +2522,11 @@ window.removeClient=(i)=>{
       S.clients.splice(i,1);
       activeClient=Math.max(0,i-1);
       activeGestaoClient=Math.max(0,i-1);
-      dbWMulti({tasks:S.tasks,clients:S.clients,fin:S.fin});
+      // Also remove videos for this client
+      S.videos=(S.videos||[]).filter(v=>v.clientId!==clientId);
+      // Remove despesas linked to this client's videos
+      S.despesas=(S.despesas||[]).filter(d=>!d.videoId||(S.videos||[]).some(v=>v.id===d.videoId));
+      dbWMulti({tasks:S.tasks,clients:S.clients,fin:S.fin,videos:S.videos,despesas:S.despesas});
       renderAll();
       showToast('Cliente removido');
     }
