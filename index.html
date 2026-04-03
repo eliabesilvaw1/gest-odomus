@@ -552,8 +552,8 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
     </button>
   </nav>
   <div class="sb-footer">
-    <div class="sb-avatars"><div class="av av-a">A</div><div class="av av-d">D</div><div class="av av-e">E</div></div>
-    <div class="sb-team">Alonso · Duda · Eliabe</div>
+    <div class="sb-avatars" id="sb-avatars-dyn"></div>
+    <div class="sb-team" id="sb-team-dyn">Equipe Domus</div>
   </div>
 </aside>
 
@@ -598,11 +598,7 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
           <div class="card-title"><div class="cdot cdot-b"></div>Rotina do dia</div>
           <button class="reset-btn" onclick="resetRotina()"><svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 11-1.1-3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 2v3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Resetar semana</button>
         </div>
-        <div class="grid3">
-          <div><div class="sl">Alonso</div><div id="ov-rot-a"></div></div>
-          <div><div class="sl">Duda</div><div id="ov-rot-d"></div></div>
-          <div><div class="sl">Eliabe</div><div id="ov-rot-e"></div></div>
-        </div>
+        <div id="ov-rot-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px"></div>
       </div>
     </div>
 
@@ -704,7 +700,7 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
       <div class="card">
         <div class="card-head"><div class="card-title"><div class="cdot cdot-a"></div>Tarefas financeiras da semana</div></div>
         <div id="fin-tasks"></div>
-        <div class="input-row"><input class="ti" id="fin-new" placeholder="Nova tarefa financeira..."/><select class="sel" id="fin-resp"><option>Alonso</option><option>Duda</option><option>Eliabe</option><option>Todos</option></select><button class="go" onclick="addFinTask()">Adicionar</button></div>
+        <div class="input-row"><input class="ti" id="fin-new" placeholder="Nova tarefa financeira..."/><select class="sel" id="fin-resp"></select><button class="go" onclick="addFinTask()">Adicionar</button></div>
       </div>
     </div>
 
@@ -736,7 +732,7 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
         <div id="rev-list"></div>
         <div class="input-row" style="margin-top:8px">
           <input class="ti" id="rev-input" placeholder="Novo item de pauta..."/>
-          <select class="sel" id="rev-who"><option>Todos</option><option>Alonso</option><option>Duda</option><option>Eliabe</option></select>
+          <select class="sel" id="rev-who"></select>
           <input class="ti" id="rev-time" placeholder="Tempo" style="max-width:72px"/>
           <button class="go" onclick="addRevItem()">Adicionar</button>
         </div>
@@ -1450,7 +1446,7 @@ const PHASES={onb:'Onboarding',impl:'Implementação',gest:'Gestão Mensal',esc:
 const CATS={msgs:'Mensagens',traf:'Tráfego',copy:'Copy/Conteúdo',gmn:'GMN',ind:'Indicadores',comercial:'Comercial',financeiro:'Financeiro',estrategia:'Estratégia',outro:'Outro'};
 const PHASE_CLASS={onb:'phase-onb',impl:'phase-impl',gest:'phase-gest',esc:'phase-esc',rot:'phase-rot'};
 const PH_BADGE_MAP={gest:'ph-g',impl:'ph-b',onb:'ph-a',esc:'ph-p'};
-const RESP_LIST_BASE=['Alonso','Duda','Eliabe','Todos'];
+const RESP_LIST_BASE=['Todos']; // dynamic — built from S.colaboradores
 function getRespList(){
   if(!S||!S.colaboradores||!S.colaboradores.length)return RESP_LIST_BASE;
   const tags=[...new Set((S.colaboradores||[]).map(c=>c.tag).filter(Boolean))];
@@ -1461,11 +1457,28 @@ function getRespList(){
   return all;
 }
 const TITLES={overview:'Visão Geral',gestao:'Gestão de Clientes',clientes:'Tarefas',rotina:'Rotina Diária',financeiro:'Financeiro',prospeccao:'Prospecção',revisao:'Revisão Interna',colaboradores:'Colaboradores',config:'Config. Tarefas',conteudo:'Produção de Conteúdo'};
-const HIST_COLORS={Alonso:'var(--bl-bg)',Duda:'var(--pu-bg)',Eliabe:'var(--gn-bg)',Todos:'var(--am-bg)'};
-const HIST_TEXT={Alonso:'var(--bl)',Duda:'var(--pu)',Eliabe:'var(--gn)',Todos:'var(--am)'};
+const HIST_COLORS_DEF={Todos:'var(--am-bg)'};
+const HIST_TEXT_DEF={Todos:'var(--am)'};
+const PALETTE_BG=['var(--bl-bg)','var(--pu-bg)','var(--gn-bg)','var(--rd-bg)'];
+const PALETTE_TX=['var(--bl)','var(--pu)','var(--gn)','var(--rd)'];
+function getHistColor(r){
+  if(!r||r==='Todos')return'var(--am-bg)';
+  const idx=(S.colaboradores||[]).findIndex(c=>c.tag===r||c.name===r);
+  return idx>=0?PALETTE_BG[idx%PALETTE_BG.length]:'var(--sf3)';
+}
+function getHistText(r){
+  if(!r||r==='Todos')return'var(--am)';
+  const idx=(S.colaboradores||[]).findIndex(c=>c.tag===r||c.name===r);
+  return idx>=0?PALETTE_TX[idx%PALETTE_TX.length]:'var(--mu)';
+}
 const HIST_TYPE_LABEL={note:'Anotação',entrega:'Entrega',reuniao:'Reunião',alerta:'Alerta',task:'Tarefa concluída',phase:'Mudança de etapa'};
 
-function tc(r){if(!r||r==='Todos')return'tag-t';if(r==='Alonso')return'tag-a';if(r==='Duda')return'tag-d';if(r==='Eliabe')return'tag-e';return'tag-t';}
+function tc(r){
+  if(!r||r==='Todos')return'tag-t';
+  const idx=(S.colaboradores||[]).findIndex(c=>c.tag===r||c.name===r);
+  const cls=['tag-a','tag-d','tag-e','tag-t'];
+  return cls[idx%cls.length]||'tag-t';
+}
 function tg(r){return`<span class="tag ${tc(r)}">${r||'—'}</span>`;}
 function fmtDate(ts){const d=new Date(ts);return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});}
 
@@ -1731,19 +1744,58 @@ window.toggleTask=(id)=>{
   if(!S.tasks[id])return;
   const wasDone=S.tasks[id].done;
   S.tasks[id].done=!wasDone;
-  // If just completed, log in client history
+
+  const writes={};
+  writes['tasks/'+id]=S.tasks[id];
+
+  // Log in client history when completing
   if(!wasDone){
     const ci=S.clients.findIndex(c=>(c.taskIds||[]).includes(id));
     if(ci>=0){
-      const entry={id:uid(),type:'task',txt:`Tarefa concluída: ${S.tasks[id].txt}`,who:S.tasks[id].r,ts:Date.now()};
-      if(!S.clients[ci].history)S.clients[ci].history=[];
-      S.clients[ci].history.unshift(entry);
-      dbW(`clients/${ci}/history`,S.clients[ci].history);
+      const c=S.clients[ci];
+      if(!c.history)c.history=[];
+      c.history.unshift({id:uid(),type:'task',
+        txt:'Tarefa concluída: '+S.tasks[id].txt,
+        who:S.tasks[id].r,ts:Date.now()});
+      writes['clients/'+ci+'/history']=c.history;
+    }
+    // Check if this task belongs to a video — auto-advance etapa
+    const vid=(S.videos||[]).find(v=>v.taskIds&&Object.values(v.taskIds).includes(id));
+    if(vid){
+      const order=['copy','gravacao','edicao','revisao','entregue'];
+      const epEntry=Object.entries(vid.taskIds||{}).find(([ep,tid])=>tid===id);
+      if(epEntry){
+        const [ep]=epEntry;
+        // Only advance if this is the CURRENT etapa
+        if(vid.etapa===ep){
+          const nextIdx=order.indexOf(ep)+1;
+          if(nextIdx<order.length){
+            vid.etapa=order[nextIdx];
+            writes['videos']=S.videos;
+            // Activate next task
+            const nextTid=vid.taskIds[order[nextIdx]];
+            if(nextTid&&S.tasks[nextTid]){
+              S.tasks[nextTid].done=false;
+              writes['tasks']=S.tasks;
+            }
+            showToast('✓ '+ETAPA_LABELS[ep]+' → '+ETAPA_LABELS[vid.etapa]);
+          }
+        }
+      }
     }
   }
-  // Single write — all views reading T(id) will update automatically
-  saveTask(id);
+
+  if(Object.keys(writes).length){
+    // Use dbW for each path
+    Object.entries(writes).forEach(([path,val])=>dbW(path,val));
+  }
   renderAll();
+  // Refresh panel if open
+  const panel=document.getElementById('vid-panel');
+  if(panel&&panel.classList.contains('open')){
+    const vid=(S.videos||[]).find(v=>v.taskIds&&Object.values(v.taskIds).includes(id));
+    if(vid)openVidPanel(vid.id);
+  }
 };
 
 // ── TASK MODAL ──
@@ -1838,13 +1890,26 @@ function renderOverview(){
     return`<div class="ov-cl" onclick="goToGestao(${i})"><div class="ov-cl-name">${c.name}</div><span class="ph-badge ${PH_BADGE_MAP[c.phase]||'ph-g'}">${PHASES[c.phase]||c.phase}</span><div class="ov-mini"><div class="ov-mini-fill" style="width:${pct}%"></div></div><div class="ov-pct">${pct}%</div></div>`;
   }).join('');
 
+  // Dynamic rotina columns per active collaborator
   const allRotIds=Object.values(S.rotina).flat();
-  ['a','d','e'].forEach((k,i)=>{
-    const r=['Alonso','Duda','Eliabe'][i];
-    const ids=allRotIds.filter(id=>{const t=T(id);return t&&(t.r===r||t.r.includes(r)||t.r==='Todos');});
-    const el=document.getElementById(`ov-rot-${k}`);
-    if(el)el.innerHTML=ids.length?ids.map(id=>tkHtml(id)).join(''):'<div class="empty">Sem tarefas</div>';
-  });
+  const activeColabs=(S.colaboradores||[]).filter(c=>c.tag);
+  const grid=document.getElementById('ov-rot-grid');
+  if(grid){
+    // Add "Todos" tasks to each colab
+    const todosIds=allRotIds.filter(id=>{const t=T(id);return t&&t.r==='Todos';});
+    grid.innerHTML=activeColabs.map(c=>{
+      const ids=allRotIds.filter(id=>{
+        const t=T(id);if(!t)return false;
+        return t.r===c.tag||t.r.includes(c.tag);
+      });
+      const allIds=[...new Set([...todosIds,...ids])];
+      return'<div>'
+        +'<div class="sl" style="color:'+( c.textColor||'var(--mu)')+'">'+c.tag+'</div>'
+        +(allIds.length?allIds.map(id=>tkHtml(id)).join(''):'<div class="empty">Sem tarefas</div>')
+        +'</div>';
+    }).join('');
+    if(!activeColabs.length)grid.innerHTML='<div class="empty">Nenhum colaborador cadastrado.</div>';
+  }
 }
 
 window.alertClick=(i)=>{
@@ -3914,32 +3979,46 @@ window.avancarEtapa=(id)=>{
   const idx=order.indexOf(v.etapa);
   if(idx>=order.length-1)return;
   const oldEtapa=v.etapa;
-  v.etapa=order[idx+1];
-  // Mark old stage task as done in client
-  if(v.taskIds&&v.taskIds[oldEtapa]){
-    const taskId=v.taskIds[oldEtapa];
-    if(S.tasks[taskId]){
-      S.tasks[taskId].done=true;
-      dbW('tasks',S.tasks);
-    }
-    // Log in client history
-    const client=(S.clients||[]).find(c=>c.id===v.clientId);
-    if(client){
-      if(!client.history)client.history=[];
-      client.history.unshift({id:uid(),type:'task',
-        txt:'['+v.titulo+'] '+ETAPA_LABELS[oldEtapa]+' concluído → '+ETAPA_LABELS[v.etapa],
-        who:S.tasks[v.taskIds[oldEtapa]]?.r||'Todos',ts:Date.now()});
-      dbW(`clients/${(S.clients||[]).indexOf(client)}/history`,client.history);
-    }
+  const newEtapa=order[idx+1];
+  v.etapa=newEtapa;
+
+  const writes={};
+  writes['videos']=S.videos;
+
+  // ── Mark old stage task as DONE ──
+  const oldTaskId=v.taskIds&&v.taskIds[oldEtapa];
+  if(oldTaskId&&S.tasks[oldTaskId]){
+    S.tasks[oldTaskId].done=true;
+    writes['tasks']=S.tasks;
   }
-  // Mark current stage task as active (not done)
-  if(v.taskIds&&v.taskIds[v.etapa]&&S.tasks[v.taskIds[v.etapa]]){
-    S.tasks[v.taskIds[v.etapa]].done=false;
-    dbW('tasks',S.tasks);
+
+  // ── Mark new stage task as NOT DONE (active) ──
+  const newTaskId=v.taskIds&&v.taskIds[newEtapa];
+  if(newTaskId&&S.tasks[newTaskId]){
+    S.tasks[newTaskId].done=false;
+    if(!writes['tasks'])writes['tasks']=S.tasks;
   }
-  dbW('videos',S.videos);
+
+  // ── Log in client history ──
+  const client=(S.clients||[]).find(c=>c.id===v.clientId);
+  if(client){
+    if(!client.history)client.history=[];
+    const who=oldTaskId?S.tasks[oldTaskId]?.r||'Todos':'Todos';
+    client.history.unshift({
+      id:uid(),type:'task',
+      txt:'['+v.titulo+'] ✓ '+ETAPA_LABELS[oldEtapa]+' → '+ETAPA_LABELS[newEtapa],
+      who,ts:Date.now()
+    });
+    writes['clients']=S.clients;
+  }
+
+  // ── Write all at once ──
+  dbWMulti(writes);
   renderAll();
-  showToast('✓ Avançou para '+ETAPA_LABELS[v.etapa]);
+  // Refresh panel if open
+  const panel=document.getElementById('vid-panel');
+  if(panel&&panel.classList.contains('open'))openVidPanel(id);
+  showToast('✓ '+ETAPA_LABELS[oldEtapa]+' concluído → '+ETAPA_LABELS[newEtapa]);
 };
 
 function renderConteudo(){
@@ -4267,10 +4346,74 @@ window.removeColabTask=(colabId,taskId)=>{
 };
 
 window.delColab=(id)=>{
-  if(!confirm('Remover este colaborador?'))return;
-  S.colaboradores=(S.colaboradores||[]).filter(c=>c.id!==id);
-  dbW('colaboradores',S.colaboradores);
-  renderColaboradores();
+  const colab=(S.colaboradores||[]).find(c=>c.id===id);
+  if(!colab)return;
+  const tag=colab.tag||colab.name;
+
+  // Count tasks assigned to this colab across all sources
+  const orphanIds=[];
+  const allTaskIds=[
+    ...Object.values(S.rotina||{}).flat(),
+    ...(S.clients||[]).flatMap(c=>c.taskIds||[]),
+    ...(S.finTasks||[]),
+    ...(S.videos||[]).flatMap(v=>Object.values(v.taskIds||{})),
+  ];
+  const seen=new Set();
+  allTaskIds.forEach(tid=>{
+    if(seen.has(tid))return;seen.add(tid);
+    const t=S.tasks[tid];
+    if(t&&(t.r===tag||t.r.includes(tag))&&t.r!=='Todos')orphanIds.push(tid);
+  });
+
+  const otherColabs=(S.colaboradores||[]).filter(c=>c.id!==id);
+
+  if(orphanIds.length>0){
+    // Build redistribution UI
+    const optionsHtml=otherColabs.length
+      ?otherColabs.map(c=>`<option value="${c.tag}">${c.tag}</option>`).join('')
+      :'<option value="Todos">Todos</option>';
+
+    showConfirm({
+      icon:'⚠️',
+      title:'Remover '+colab.name+'?',
+      msg:'<b>'+orphanIds.length+' tarefa'+(orphanIds.length>1?'s':'')+'</b> estão designadas para <b>'+tag+'</b>.<br><br>'
+        +'Escolha para quem redistribuir antes de remover:<br><br>'
+        +'<select id="redist-colab" style="width:100%;padding:8px;background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--rs);color:var(--tx);font-size:13px;margin-top:4px">'
+        +optionsHtml
+        +'</select>'
+        +'<div style="font-size:11px;color:var(--mu);margin-top:6px">As tarefas serão reatribuídas e o colaborador removido do sistema.</div>',
+      okLabel:'Redistribuir e remover',
+      okClass:'danger',
+      onOk:()=>{
+        const newResp=document.getElementById('redist-colab')?.value||'Todos';
+        // Reassign all tasks
+        orphanIds.forEach(tid=>{
+          if(S.tasks[tid]){S.tasks[tid].r=newResp;}
+        });
+        dbW('tasks',S.tasks);
+        // Remove colab
+        S.colaboradores=S.colaboradores.filter(c=>c.id!==id);
+        dbW('colaboradores',S.colaboradores);
+        renderAll();
+        showToast(orphanIds.length+' tarefa'+(orphanIds.length>1?'s':'')+'  redistribuída'+(orphanIds.length>1?'s':'')+' para '+newResp);
+      }
+    });
+  } else {
+    // No tasks — simple confirm
+    showConfirm({
+      icon:'🗑️',
+      title:'Remover '+colab.name+'?',
+      msg:'<b>'+colab.name+'</b> será removido do sistema.<br><span style="color:var(--mu)">Nenhuma tarefa está designada a este colaborador.</span>',
+      okLabel:'Remover colaborador',
+      okClass:'danger',
+      onOk:()=>{
+        S.colaboradores=S.colaboradores.filter(c=>c.id!==id);
+        dbW('colaboradores',S.colaboradores);
+        renderAll();
+        showToast(colab.name+' removido');
+      }
+    });
+  }
 };
 
 window.openColabModal=(id)=>{
