@@ -595,6 +595,7 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
 
     <!-- OVERVIEW -->
     <div class="sec on" id="sec-overview">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="ghost" onclick="openWeeklySummary()" style="font-size:11px;padding:4px 12px">📊 Ver resumo semanal</button></div>
       <div class="metrics" style="grid-template-columns:repeat(5,minmax(0,1fr))">
         <div class="metric g" onclick="openOvPanel('clientes')" title="Ver clientes ativos"><div class="m-label">Clientes ativos</div><div class="m-val" id="mv-cl">—</div><div class="m-sub">clique para ver →</div></div>
         <div class="metric r" onclick="openOvPanel('alertas')" title="Ver alertas urgentes"><div class="m-label">Alertas urgentes</div><div class="m-val" id="mv-al">—</div><div class="m-sub">clique para ver →</div></div>
@@ -836,6 +837,26 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
 
   </div>
 </main>
+
+<!-- MODAL: Resumo Semanal -->
+<div class="modal-bg" id="modal-weekly" style="align-items:flex-start;padding-top:40px">
+  <div class="modal" style="width:620px;max-height:85vh;overflow-y:auto">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-title">📊 Resumo da semana</div>
+        <div style="font-size:11px;color:var(--mu);margin-top:2px" id="weekly-period"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-weekly')">×</button>
+    </div>
+    <div id="weekly-body"></div>
+    <div class="form-actions" style="justify-content:space-between">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mu);cursor:pointer">
+        <input type="checkbox" id="weekly-no-show" style="accent-color:var(--bl)"/> Não mostrar automaticamente esta semana
+      </label>
+      <button class="go" onclick="closeWeeklySummary()">Fechar</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL: Tarefa interna -->
 <div class="modal-bg" id="modal-internal-task">
@@ -1471,6 +1492,7 @@ const DEF={
   cfgTasks:[],
   templates:[], // [{id, nome, descricao, segmento, tarefas:[{txt,fase,cat,resp,diasAposInicio,urgente,desc}]}]
   lastMonthlyRun:'', // tracks last month recurrence ran
+  lastWeeklySummary:'', // tracks last weekly summary shown
   internalTasks:[], // tarefas avulsas internas da Domus
   videos:[],
   socios:[
@@ -1734,7 +1756,7 @@ function showApp(){
   if(sidebar)sidebar.style.display='flex';
   if(content)content.style.display='block';
   applyAccessControl();
-  setTimeout(()=>{renderAll();checkMonthlyRecurrence();},50);
+  setTimeout(()=>{renderAll();checkMonthlyRecurrence();checkWeeklySummary();},50);
 }
 
 // ── MONTHLY RECURRENCE ──
@@ -1866,6 +1888,174 @@ function renderInternalTasks(){
     // Add internal pending to count (already counted? no — add separately)
   }
 }
+
+// ── RESUMO SEMANAL ──
+function getWeekKey(date){
+  const d=new Date(date);
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()-d.getDay()+1); // Monday
+  return d.toISOString().split('T')[0];
+}
+
+function checkWeeklySummary(){
+  if(!S)return;
+  const now=new Date();
+  const weekKey=getWeekKey(now);
+  const lastShown=S.lastWeeklySummary||'';
+  // Show on Monday OR if never shown this week
+  if(lastShown===weekKey)return;
+  // Only show if there's meaningful data (at least 1 client)
+  if(!(S.clients||[]).filter(c=>c.active!==false).length)return;
+  // Delay slightly so app renders first
+  setTimeout(()=>showWeeklySummary(),800);
+}
+
+function showWeeklySummary(){
+  if(!S)return;
+  const now=new Date();
+  const weekKey=getWeekKey(now);
+  // Calculate week range (Mon-Sun)
+  const mon=new Date(weekKey);
+  const sun=new Date(mon);sun.setDate(sun.getDate()+6);
+  const fmtDate=(d)=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+  document.getElementById('weekly-period').textContent=
+    'Semana de '+fmtDate(mon)+' a '+fmtDate(sun);
+
+  const activeClients=(S.clients||[]).filter(c=>c.active!==false);
+  const today=now.toISOString().split('T')[0];
+  const monStr=weekKey;
+  const sunStr=sun.toISOString().split('T')[0];
+
+  // ── CLIENTES ──
+  const clientsOk=activeClients.filter(c=>{
+    const h=calcClientHealth(c);return h.level==='g';
+  }).length;
+  const clientsAt=activeClients.filter(c=>{
+    const h=calcClientHealth(c);return h.level==='a';
+  }).length;
+  const clientsRisk=activeClients.filter(c=>{
+    const h=calcClientHealth(c);return h.level==='r';
+  }).length;
+
+  // ── VÍDEOS ──
+  const videos=S.videos||[];
+  const videosEntregues=videos.filter(v=>v.etapa==='entregue'&&v.prazo>=monStr&&v.prazo<=sunStr).length;
+  const videosEmProd=videos.filter(v=>v.etapa!=='entregue'&&!v.isReferencia).length;
+  const videosAtrasados=videos.filter(v=>v.etapa!=='entregue'&&v.prazo&&v.prazo<today&&!v.isReferencia).length;
+
+  // ── FINANCEIRO ──
+  const mes=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const finMes=(S.fin||[]).filter(f=>f.mes===mes);
+  const recPago=finMes.filter(f=>f.status==='ok').reduce((a,f)=>a+(parseFloat(f.val)||0),0);
+  const recPend=finMes.filter(f=>f.status!=='ok').reduce((a,f)=>a+(parseFloat(f.val)||0),0);
+  const despMes=(S.despesas||[]).filter(d=>d.mes===mes);
+  const despPago=despMes.filter(d=>d.status==='ok').reduce((a,d)=>a+(parseFloat(d.val)||0),0);
+
+  // ── TAREFAS ──
+  const allTaskIds=[
+    ...activeClients.flatMap(c=>c.taskIds||[]),
+    ...Object.values(S.rotina||{}).flat(),
+    ...(S.finTasks||[]),
+    ...(S.internalTasks||[]).map(t=>t.id)
+  ];
+  const seen=new Set();
+  let taskDone=0,taskPend=0,taskUrgent=0;
+  allTaskIds.forEach(id=>{
+    if(seen.has(id))return;seen.add(id);
+    const t=S.tasks[id]||(S.internalTasks||[]).find(x=>x.id===id);
+    if(!t)return;
+    if(t.done)taskDone++;
+    else{taskPend++;if(t.urgent)taskUrgent++;}
+  });
+
+  const fmt=(v)=>'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+
+  let html='';
+
+  // ── SECTION: Saúde dos clientes ──
+  html+='<div style="background:var(--sf2);border-radius:var(--r);padding:14px;margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">👥 Clientes ativos ('+activeClients.length+')</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
+    +'<div style="text-align:center;background:var(--gn-bg);border:1px solid var(--gn-bd);border-radius:var(--rs);padding:10px">'
+    +'<div style="font-size:24px;font-weight:700;color:var(--gn)">'+clientsOk+'</div>'
+    +'<div style="font-size:11px;color:var(--gn)">🟢 Em dia</div></div>'
+    +'<div style="text-align:center;background:var(--am-bg);border:1px solid var(--am-bd);border-radius:var(--rs);padding:10px">'
+    +'<div style="font-size:24px;font-weight:700;color:var(--am)">'+clientsAt+'</div>'
+    +'<div style="font-size:11px;color:var(--am)">🟡 Atenção</div></div>'
+    +'<div style="text-align:center;background:var(--rd-bg);border:1px solid var(--rd-bd);border-radius:var(--rs);padding:10px">'
+    +'<div style="font-size:24px;font-weight:700;color:var(--rd)">'+clientsRisk+'</div>'
+    +'<div style="font-size:11px;color:var(--rd)">🔴 Em risco</div></div>'
+    +'</div>'
+    +(clientsRisk>0?'<div style="font-size:11px;color:var(--rd);margin-top:8px">⚠ '+clientsRisk+' cliente'+(clientsRisk>1?'s':'')+' precisam de atenção urgente</div>':'')
+    +'</div>';
+
+  // ── SECTION: Financeiro do mês ──
+  html+='<div style="background:var(--sf2);border-radius:var(--r);padding:14px;margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">💰 Financeiro — '+now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
+    +'<div style="background:var(--sf3);border-radius:var(--rs);padding:10px;text-align:center">'
+    +'<div style="font-size:13px;font-weight:600;color:var(--gn)">'+fmt(recPago)+'</div>'
+    +'<div style="font-size:10px;color:var(--mu)">Receitas pagas</div></div>'
+    +'<div style="background:var(--sf3);border-radius:var(--rs);padding:10px;text-align:center">'
+    +'<div style="font-size:13px;font-weight:600;color:var(--am)">'+fmt(recPend)+'</div>'
+    +'<div style="font-size:10px;color:var(--mu)">Receitas pendentes</div></div>'
+    +'<div style="background:var(--sf3);border-radius:var(--rs);padding:10px;text-align:center">'
+    +'<div style="font-size:13px;font-weight:600;color:var(--rd)">'+fmt(despPago)+'</div>'
+    +'<div style="font-size:10px;color:var(--mu)">Despesas pagas</div></div>'
+    +'</div></div>';
+
+  // ── SECTION: Produção de conteúdo ──
+  if(videos.length>0){
+    html+='<div style="background:var(--sf2);border-radius:var(--r);padding:14px;margin-bottom:12px">'
+      +'<div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">🎬 Produção de conteúdo</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
+      +'<div style="background:var(--sf3);border-radius:var(--rs);padding:10px;text-align:center">'
+      +'<div style="font-size:24px;font-weight:700;color:var(--gn)">'+videosEntregues+'</div>'
+      +'<div style="font-size:10px;color:var(--mu)">Entregues esta semana</div></div>'
+      +'<div style="background:var(--sf3);border-radius:var(--rs);padding:10px;text-align:center">'
+      +'<div style="font-size:24px;font-weight:700;color:var(--bl)">'+videosEmProd+'</div>'
+      +'<div style="font-size:10px;color:var(--mu)">Em produção</div></div>'
+      +'<div style="background:var(--sf3);border-radius:var(--rs);padding:10px;text-align:center">'
+      +'<div style="font-size:24px;font-weight:700;color:'+(videosAtrasados>0?'var(--rd)':'var(--mu)')+'">'+videosAtrasados+'</div>'
+      +'<div style="font-size:10px;color:var(--mu)">Atrasados</div></div>'
+      +'</div></div>';
+  }
+
+  // ── SECTION: Tarefas ──
+  html+='<div style="background:var(--sf2);border-radius:var(--r);padding:14px;margin-bottom:4px">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">✅ Tarefas</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
+    +'<div style="background:var(--sf3);border-radius:var(--rs);padding:10px;text-align:center">'
+    +'<div style="font-size:24px;font-weight:700;color:var(--gn)">'+taskDone+'</div>'
+    +'<div style="font-size:10px;color:var(--mu)">Concluídas</div></div>'
+    +'<div style="background:var(--sf3);border-radius:var(--rs);padding:10px;text-align:center">'
+    +'<div style="font-size:24px;font-weight:700;color:var(--am)">'+taskPend+'</div>'
+    +'<div style="font-size:10px;color:var(--mu)">Pendentes</div></div>'
+    +'<div style="background:var(--sf3);border-radius:var(--rs);padding:10px;text-align:center">'
+    +'<div style="font-size:24px;font-weight:700;color:'+(taskUrgent>0?'var(--rd)':'var(--mu)')+'">'+taskUrgent+'</div>'
+    +'<div style="font-size:10px;color:var(--mu)">Urgentes</div></div>'
+    +'</div></div>';
+
+  document.getElementById('weekly-body').innerHTML=html;
+  openModal('modal-weekly');
+  // Mark as shown
+  S.lastWeeklySummary=weekKey;
+  dbW('lastWeeklySummary',weekKey);
+}
+
+window.closeWeeklySummary=()=>{
+  const noShow=document.getElementById('weekly-no-show')?.checked;
+  if(!noShow){
+    // Already marked on open
+  }
+  closeModal('modal-weekly');
+};
+
+// Manual trigger from overview
+window.openWeeklySummary=()=>{
+  S.lastWeeklySummary=''; // force show
+  showWeeklySummary();
+};
 
 window.forceMonthlyRecurrence=()=>{
   showConfirm({icon:'🔄',title:'Forçar recorrência mensal?',
