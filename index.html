@@ -4106,7 +4106,7 @@ function renderTplTarefasList(){
     +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].fase=this.value">'+faseOpts.replace('value="'+t.fase+'"','value="'+t.fase+'" selected')+'</select>'
     +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].cat=this.value">'+catOpts.replace('value="'+t.cat+'"','value="'+t.cat+'" selected')+'</select>'
     +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].resp=this.value"><option value="Todos">Todos</option>'+colabOpts+'</select>'
-    +'<input class="ti" type="number" style="font-size:11px;text-align:center" placeholder="Dias" title="Dias após início do contrato" value="'+(t.diasAposInicio||0)+'" oninput="_tplTarefas['+i+'].diasAposInicio=parseInt(this.value)||0"/>'
+    +'<div style="display:flex;align-items:center;gap:4px"><input class="ti" type="number" style="font-size:11px;text-align:center;width:55px" placeholder="0" title="Dias após início do contrato para calcular o prazo automaticamente" value="'+(t.diasAposInicio||0)+'" oninput="_tplTarefas['+i+'].diasAposInicio=parseInt(this.value)||0"/><span style="font-size:10px;color:var(--mu);white-space:nowrap">dias após<br>início</span></div>'
     +'<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--mu);cursor:pointer;white-space:nowrap"><input type="checkbox"'+(t.urgente?' checked':'')+' onchange="_tplTarefas['+i+'].urgente=this.checked"/> Urgente</label>'
     +'</div>'
     +'<div style="margin-top:6px"><input class="ti" style="width:100%;font-size:11px" placeholder="Instrução / detalhe (opcional)..." value="'+escHtml(t.desc||'')+'" oninput="_tplTarefas['+i+'].desc=this.value"/></div>'
