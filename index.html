@@ -802,12 +802,26 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
     </div>
 
     <div class="sec" id="sec-config">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div><div class="pg-title">Configuração de Tarefas</div><div class="pg-sub" style="margin-bottom:0">Biblioteca de tarefas padrão. Editar aqui não afeta tarefas já atribuídas.</div></div>
-        <button class="c-btn" onclick="openCfgTaskModal()">+ Nova tarefa padrão</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div><div class="pg-title">Configuração de Tarefas</div><div class="pg-sub" style="margin-bottom:0">Biblioteca de tarefas padrão e templates de onboarding por tipo de contrato.</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="ghost" id="cfg-tab-tpl-btn" onclick="setCfgTab('templates')" style="font-size:12px;padding:5px 12px">📋 Templates de Onboarding</button>
+          <button class="c-btn" id="cfg-tab-task-btn" onclick="setCfgTab('tarefas')">+ Nova tarefa padrão</button>
+        </div>
       </div>
-      <div class="cfg-phase-tabs" id="cfg-tabs"></div>
-      <div class="card" style="padding:8px 12px"><div id="cfg-task-list"></div></div>
+      <!-- Tarefas padrão tab -->
+      <div id="cfg-tarefas-panel">
+        <div class="cfg-phase-tabs" id="cfg-tabs"></div>
+        <div class="card" style="padding:8px 12px"><div id="cfg-task-list"></div></div>
+      </div>
+      <!-- Templates tab -->
+      <div id="cfg-templates-panel" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:13px;color:var(--mu)">Crie checklists completos por tipo de contrato. Ao cadastrar um cliente, escolha o template para gerar todas as tarefas automaticamente.</div>
+          <button class="c-btn" onclick="openTemplateModal()">+ Novo template</button>
+        </div>
+        <div id="cfg-templates-list"></div>
+      </div>
     </div>
 
   </div>
@@ -849,6 +863,58 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
     <div class="form-row"><label class="form-label">Categoria</label><select class="sel" id="cft-cat" style="width:100%"><option value="msgs">Mensagens</option><option value="traf">Tráfego</option><option value="copy">Copy/Conteúdo</option><option value="gmn">Google Meu Negócio</option><option value="ind">Indicadores</option><option value="comercial">Comercial</option><option value="financeiro">Financeiro</option><option value="estrategia">Estratégia</option><option value="outro">Outro</option></select></div>
     <div class="form-row"><label class="form-label">Responsável padrão</label><div class="resp-pills" id="cfg-resp-pills"></div></div>
     <div class="form-actions"><button class="ghost" onclick="closeModal('modal-cfg-task')">Cancelar</button><button class="go" onclick="saveCfgTask()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Template de Onboarding -->
+<div class="modal-bg" id="modal-template">
+  <div class="modal" style="width:620px;max-height:90vh;overflow-y:auto">
+    <div class="modal-hd">
+      <div class="modal-title" id="tpl-modal-title">Novo template de onboarding</div>
+      <button class="modal-close" onclick="closeModal('modal-template')">×</button>
+    </div>
+    <div class="grid2" style="gap:10px">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Nome do template</label>
+        <input class="ti" id="tpl-nome" style="width:100%" placeholder="Ex: Onboarding — Clínica Estética"/>
+      </div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Segmento / tipo</label>
+        <input class="ti" id="tpl-segmento" style="width:100%" placeholder="Ex: Estética, Lanchonete, Médico..."/>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label">Descrição (opcional)</label>
+      <input class="ti" id="tpl-desc" style="width:100%" placeholder="Para qual tipo de cliente este template se aplica..."/>
+    </div>
+    <!-- Tarefas do template -->
+    <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Tarefas do checklist</div>
+    <div id="tpl-tarefas-list" style="margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:4px">
+      <button type="button" class="ghost" onclick="addTplTarefa()" style="flex:1;font-size:12px;padding:7px">+ Nova tarefa</button>
+      <button type="button" class="c-btn" onclick="openImportBiblioteca()" style="flex:1;font-size:12px;padding:7px;background:var(--bl-bg);color:var(--bl);border-color:var(--bl-bd)">📚 Importar da biblioteca</button>
+    </div>
+    <!-- Import panel (inline) -->
+    <div id="tpl-import-panel" style="display:none;background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:500;color:var(--tx)">Selecione tarefas da biblioteca</div>
+        <button onclick="closeImportBiblioteca()" style="background:transparent;border:none;color:var(--mu);cursor:pointer;font-size:18px;line-height:1">×</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="tpl-import-phase-filter">
+        <button class="rpill on-e" data-phase="all" onclick="setImportFilter('all',this)">Todas</button>
+        <button class="rpill" data-phase="onb" onclick="setImportFilter('onb',this)">Onboarding</button>
+        <button class="rpill" data-phase="impl" onclick="setImportFilter('impl',this)">Implementação</button>
+        <button class="rpill" data-phase="gest" onclick="setImportFilter('gest',this)">Gestão</button>
+        <button class="rpill" data-phase="esc" onclick="setImportFilter('esc',this)">Escala</button>
+        <button class="rpill" data-phase="rot" onclick="setImportFilter('rot',this)">Rotina</button>
+      </div>
+      <div id="tpl-import-list" style="max-height:220px;overflow-y:auto"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)">
+        <span id="tpl-import-count" style="font-size:11px;color:var(--mu);align-self:center">0 selecionadas</span>
+        <button class="c-btn" onclick="importSelecionadas()" style="font-size:12px;padding:5px 14px">Adicionar selecionadas</button>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="ghost" onclick="closeModal('modal-template')">Cancelar</button>
+      <button class="go" onclick="saveTemplate()">Salvar template</button>
+    </div>
   </div>
 </div>
 
@@ -974,7 +1040,16 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
         <div style="font-size:10px;color:var(--mu2);margin-top:2px">∞ mensal = recorrente sem fim · 1x, 2x... = para automaticamente</div>
       </div>
     </div>
-    <div id="mc-tpl-preview"></div>
+    <!-- Template de onboarding -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📋 Template de onboarding</div>
+      <div class="form-row" style="margin-bottom:6px"><label class="form-label">Aplicar template ao criar cliente</label>
+        <select class="sel" id="mc-template" style="width:100%" onchange="previewTemplate()">
+          <option value="">Nenhum — sem tarefas automáticas</option>
+        </select>
+      </div>
+      <div id="mc-tpl-preview" style="font-size:11px;color:var(--mu)"></div>
+    </div>
     <div class="form-actions"><button class="ghost" onclick="closeModal('modal-client')">Cancelar</button><button class="go" onclick="saveClient()">Criar cliente</button></div>
   </div>
 </div>
@@ -1351,6 +1426,7 @@ const DEF={
     {txt:'Prospecção: quantos leads na semana? Quem avançou no funil?',who:'Alonso',time:'5 min',note:''},
   ],
   cfgTasks:[],
+  templates:[], // [{id, nome, descricao, segmento, tarefas:[{txt,fase,cat,resp,diasAposInicio,urgente,desc}]}]
   videos:[],
   socios:[
     {id:'soc1',name:'Alonso',perc:33.33,color:'var(--bl-bg)',tc:'var(--bl)'},
@@ -1496,7 +1572,7 @@ function fixS(s){
   });
   // Fix top-level arrays
   if(!s.despesas)s.despesas=[];
-  ['fin','finTasks','funil','prospTasks','procTasks','despesas','socios','videos'].forEach(k=>{
+  ['fin','finTasks','funil','prospTasks','procTasks','despesas','socios','videos','templates'].forEach(k=>{
     if(!s[k])s[k]=DEF[k]||[];
     else s[k]=fbArr(s[k]);
   });
@@ -2454,6 +2530,7 @@ window.saveClient=()=>{
   const respRaw=document.getElementById('mc-resp').value;
   const resp=respRaw||(_mcRespSelected.join(',')||'Todos');
   _mcRespSelected=[];
+  const templateId=document.getElementById('mc-template')?.value||'';
   const meta=document.getElementById('mc-meta').value.trim();
   const valor=document.getElementById('mc-valor')?.value.trim()||'';
   const venc=document.getElementById('mc-venc')?.value.trim()||'';
@@ -2529,6 +2606,25 @@ window.saveClient=()=>{
     S.tasks[finTaskId]={id:finTaskId,txt:`Cobrar 1ª mensalidade — ${name} (R$ ${valorNum})`,r:resolveResp('financeiro',resp),done:false,urgent:false,note:''};
     if(!S.finTasks)S.finTasks=[];
     S.finTasks.push(finTaskId);
+  }
+  // Apply onboarding template
+  if(templateId){
+    const tpl=(S.templates||[]).find(t=>t.id===templateId);
+    if(tpl&&tpl.tarefas?.length){
+      const newClient=S.clients[S.clients.length-1];
+      if(!newClient.taskIds)newClient.taskIds=[];
+      const dataInicio=new Date();
+      tpl.tarefas.forEach(tf=>{
+        const taskId=uid();
+        const prazoTask=tf.diasAposInicio>0
+          ?new Date(dataInicio.getTime()+tf.diasAposInicio*24*60*60*1000).toISOString().split('T')[0]:'';
+        S.tasks[taskId]={id:taskId,txt:tf.txt,r:tf.resp||resp,done:false,
+          urgent:!!tf.urgente,note:tf.desc||'',prazo:prazoTask};
+        newClient.taskIds.push(taskId);
+      });
+      dbW('tasks',S.tasks);
+      dbW('clients',S.clients);
+    }
   }
 
   // ── AUTO-ASSIGN TASKS FROM COLABORADORES ──
@@ -3359,7 +3455,7 @@ window.closeFinPanel=()=>{
 let sociosEditList=[];
 window.openModal=id=>{
   if(id==='modal-socios')renderSociosEdit();
-  if(id==='modal-client'){_mcRespSelected=[];setTimeout(renderMcRespPills,50);}
+  if(id==='modal-client'){_mcRespSelected=[];setTimeout(()=>{renderMcRespPills();populateTemplateSelect();},50);}
   document.getElementById(id).classList.add('open');
 };
 
@@ -3927,6 +4023,290 @@ window.retrocederEtapa=(id)=>{
     showToast('↩ Retrocedido para '+ETAPA_LABELS[prevEtapa]);
   }});
 };
+// ── TEMPLATES DE ONBOARDING ──
+let tplModalCtx=null;
+let _tplTarefas=[];
+
+const TPL_FASES=[
+  {v:'onb',l:'Onboarding'},{v:'impl',l:'Implementação'},{v:'gest',l:'Gestão Mensal'},
+  {v:'esc',l:'Escala'},{v:'rot',l:'Rotina Geral'}
+];
+const TPL_CATS=[
+  {v:'msgs',l:'Mensagens'},{v:'traf',l:'Tráfego'},{v:'copy',l:'Copy/Conteúdo'},
+  {v:'gmn',l:'Google Meu Negócio'},{v:'ind',l:'Indicadores'},{v:'comercial',l:'Comercial'},
+  {v:'financeiro',l:'Financeiro'},{v:'estrategia',l:'Estratégia'},{v:'outro',l:'Outro'}
+];
+
+let _cfgTab='tarefas';
+window.setCfgTab=(tab)=>{
+  _cfgTab=tab;
+  document.getElementById('cfg-tarefas-panel').style.display=tab==='tarefas'?'block':'none';
+  document.getElementById('cfg-templates-panel').style.display=tab==='templates'?'block':'none';
+  const tBtn=document.getElementById('cfg-tab-tpl-btn');
+  const aBtn=document.getElementById('cfg-tab-task-btn');
+  if(tBtn)tBtn.style.background=tab==='templates'?'var(--bl-bg)':'';
+  if(tBtn)tBtn.style.color=tab==='templates'?'var(--bl)':'';
+  if(tab==='tarefas'){
+  // tab button update handled by display toggle
+  }
+  if(tab==='templates')renderTemplatesList();
+  else renderConfig();
+};
+
+window.openTemplateModal=(id)=>{
+  tplModalCtx=id||null;
+  _tplTarefas=[];
+  document.getElementById('tpl-modal-title').textContent=id?'Editar template':'Novo template';
+  if(id){
+    const tpl=(S.templates||[]).find(t=>t.id===id);
+    if(tpl){
+      document.getElementById('tpl-nome').value=tpl.nome||'';
+      document.getElementById('tpl-segmento').value=tpl.segmento||'';
+      document.getElementById('tpl-desc').value=tpl.descricao||'';
+      _tplTarefas=JSON.parse(JSON.stringify(tpl.tarefas||[]));
+    }
+  } else {
+    document.getElementById('tpl-nome').value='';
+    document.getElementById('tpl-segmento').value='';
+    document.getElementById('tpl-desc').value='';
+    _tplTarefas=[];
+  }
+  renderTplTarefasList();
+  openModal('modal-template');
+};
+
+window.addTplTarefa=()=>{
+  _tplTarefas.push({id:uid(),txt:'',fase:'onb',cat:'msgs',resp:'Todos',diasAposInicio:0,urgente:false,desc:''});
+  renderTplTarefasList();
+};
+
+window.removeTplTarefa=(idx)=>{
+  _tplTarefas.splice(idx,1);
+  renderTplTarefasList();
+};
+
+function renderTplTarefasList(){
+  const wrap=document.getElementById('tpl-tarefas-list');
+  if(!wrap)return;
+  if(!_tplTarefas.length){
+    wrap.innerHTML='<div class="empty" style="padding:12px">Nenhuma tarefa ainda. Clique em "+ Adicionar tarefa" para começar.</div>';
+    return;
+  }
+  const colabOpts=(S.colaboradores||[]).map(c=>'<option value="'+c.tag+'">'+c.tag+'</option>').join('');
+  const faseOpts=TPL_FASES.map(f=>'<option value="'+f.v+'">'+f.l+'</option>').join('');
+  const catOpts=TPL_CATS.map(c=>'<option value="'+c.v+'">'+c.l+'</option>').join('');
+  wrap.innerHTML=_tplTarefas.map((t,i)=>
+    '<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--rs);padding:12px;margin-bottom:8px">'
+    +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">'
+    +'<span style="font-size:11px;color:var(--mu);flex-shrink:0">#'+(i+1)+'</span>'
+    +'<input class="ti" style="flex:1;font-size:12px" placeholder="Descrição da tarefa..." value="'+escHtml(t.txt||'')+'" oninput="_tplTarefas['+i+'].txt=this.value"/>'
+    +'<button onclick="removeTplTarefa('+i+')" style="background:transparent;border:none;color:var(--rd);cursor:pointer;font-size:16px;padding:0 4px">×</button>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 80px auto;gap:6px;align-items:center">'
+    +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].fase=this.value">'+faseOpts.replace('value="'+t.fase+'"','value="'+t.fase+'" selected')+'</select>'
+    +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].cat=this.value">'+catOpts.replace('value="'+t.cat+'"','value="'+t.cat+'" selected')+'</select>'
+    +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].resp=this.value"><option value="Todos">Todos</option>'+colabOpts+'</select>'
+    +'<input class="ti" type="number" style="font-size:11px;text-align:center" placeholder="Dias" title="Dias após início do contrato" value="'+(t.diasAposInicio||0)+'" oninput="_tplTarefas['+i+'].diasAposInicio=parseInt(this.value)||0"/>'
+    +'<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--mu);cursor:pointer;white-space:nowrap"><input type="checkbox"'+(t.urgente?' checked':'')+' onchange="_tplTarefas['+i+'].urgente=this.checked"/> Urgente</label>'
+    +'</div>'
+    +'<div style="margin-top:6px"><input class="ti" style="width:100%;font-size:11px" placeholder="Instrução / detalhe (opcional)..." value="'+escHtml(t.desc||'')+'" oninput="_tplTarefas['+i+'].desc=this.value"/></div>'
+    +'</div>'
+  ).join('');
+}
+
+function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+window.saveTemplate=()=>{
+  const nome=document.getElementById('tpl-nome').value.trim();
+  if(!nome){showToast('Informe o nome do template');return;}
+  const segmento=document.getElementById('tpl-segmento').value.trim();
+  const descricao=document.getElementById('tpl-desc').value.trim();
+  const tarefas=_tplTarefas.filter(t=>t.txt.trim());
+  if(!S.templates)S.templates=[];
+  if(tplModalCtx){
+    const tpl=S.templates.find(t=>t.id===tplModalCtx);
+    if(tpl)Object.assign(tpl,{nome,segmento,descricao,tarefas});
+  } else {
+    S.templates.push({id:uid(),nome,segmento,descricao,tarefas,criadoEm:Date.now()});
+  }
+  dbW('templates',S.templates);
+  closeModal('modal-template');
+  renderTemplatesList();
+  // Refresh template selector in client modal
+  populateTemplateSelect();
+  showToast('✓ Template salvo — '+tarefas.length+' tarefa'+(tarefas.length!==1?'s':''));
+};
+
+window.delTemplate=(id)=>{
+  const tpl=(S.templates||[]).find(t=>t.id===id);
+  showConfirm({icon:'🗑️',title:'Remover template?',
+    msg:'O template <b>'+(tpl?.nome||'')+'</b> será removido. Clientes já criados com este template não serão afetados.',
+    okLabel:'Remover',okClass:'danger',
+    onOk:()=>{S.templates=(S.templates||[]).filter(t=>t.id!==id);dbW('templates',S.templates);renderTemplatesList();populateTemplateSelect();showToast('Template removido');}
+  });
+};
+
+function renderTemplatesList(){
+  const wrap=document.getElementById('cfg-templates-list');
+  if(!wrap||!S)return;
+  const tpls=S.templates||[];
+  if(!tpls.length){
+    wrap.innerHTML='<div class="card"><div class="empty" style="padding:30px">Nenhum template criado.<br>Crie templates para gerar checklists automáticos ao cadastrar novos clientes.</div></div>';
+    return;
+  }
+  wrap.innerHTML=tpls.map(tpl=>{
+    const count=tpl.tarefas?.length||0;
+    return'<div class="card" style="margin-bottom:12px">'
+      +'<div class="card-head">'
+      +'<div>'
+      +'<div class="card-title">'+tpl.nome+(tpl.segmento?'<span style="font-size:11px;color:var(--mu);font-weight:400;margin-left:8px">· '+tpl.segmento+'</span>':'')+'</div>'
+      +(tpl.descricao?'<div style="font-size:11px;color:var(--mu2);margin-top:2px">'+tpl.descricao+'</div>':'')
+      +'</div>'
+      +'<div style="display:flex;gap:8px;align-items:center">'
+      +'<span style="font-size:11px;color:var(--mu)">'+count+' tarefa'+(count!==1?'s':'')+'</span>'
+      +'<button class="ghost" style="font-size:11px;padding:3px 10px" data-tid="'+tpl.id+'" onclick="openTemplateModal(this.dataset.tid)">Editar</button>'
+      +'<button class="ghost" style="font-size:11px;padding:3px 10px;color:var(--rd);border-color:var(--rd-bd)" data-tid="'+tpl.id+'" onclick="delTemplate(this.dataset.tid)">Remover</button>'
+      +'</div>'
+      +'</div>'
+      // Tasks preview
+      +(tpl.tarefas?.length?
+        '<div style="margin-top:8px;border-top:1px solid var(--bd);padding-top:8px">'
+        +tpl.tarefas.slice(0,5).map(t=>{
+          const faseL=TPL_FASES.find(f=>f.v===t.fase)?.l||t.fase;
+          return'<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px">'
+            +'<span class="ph-badge '+(({'onb':'ph-o','impl':'ph-b','gest':'ph-g','esc':'ph-a','rot':'ph-g'})[t.fase]||'ph-g')+'" style="font-size:9px">'+faseL+'</span>'
+            +'<span style="flex:1;color:var(--tx)">'+t.txt+'</span>'
+            +(t.diasAposInicio?'<span style="color:var(--mu);font-size:10px">+'+t.diasAposInicio+'d</span>':'')
+            +'<span class="tag" style="font-size:10px">'+t.resp+'</span>'
+            +'</div>';
+        }).join('')
+        +(tpl.tarefas.length>5?'<div style="font-size:11px;color:var(--mu2);padding-top:4px">... e mais '+(tpl.tarefas.length-5)+' tarefa'+(tpl.tarefas.length-5!==1?'s':'')+'</div>':'')
+        +'</div>'
+        :'')
+      +'</div>';
+  }).join('');
+}
+
+function populateTemplateSelect(){
+  const sel=document.getElementById('mc-template');if(!sel)return;
+  const tpls=S.templates||[];
+  sel.innerHTML='<option value="">Nenhum — criar sem tarefas automáticas</option>'
+    +tpls.map(t=>'<option value="'+t.id+'">'+t.nome+(t.segmento?' ('+t.segmento+')':'')+'</option>').join('');
+}
+
+window.previewTemplate=()=>{
+  const id=document.getElementById('mc-template')?.value;
+  const prev=document.getElementById('mc-tpl-preview');
+  if(!prev)return;
+  if(!id){prev.innerHTML='';return;}
+  const tpl=(S.templates||[]).find(t=>t.id===id);
+  if(!tpl){prev.innerHTML='';return;}
+  const count=tpl.tarefas?.length||0;
+  prev.innerHTML='<div style="margin-top:4px;padding:8px 10px;background:var(--bl-bg);border:1px solid var(--bl-bd);border-radius:var(--rs)">'
+    +'<div style="font-size:11px;color:var(--bl);font-weight:500;margin-bottom:4px">📋 '+count+' tarefa'+(count!==1?'s':'')+' serão criadas automaticamente</div>'
+    +(tpl.tarefas||[]).slice(0,4).map(t=>'<div style="font-size:11px;color:var(--mu)">· '+t.txt+'</div>').join('')
+    +(count>4?'<div style="font-size:11px;color:var(--mu2)">... e mais '+(count-4)+'</div>':'')
+    +'</div>';
+};
+
+// ── IMPORTAR DA BIBLIOTECA ──
+let _importFilter='all';
+let _importSelected=new Set();
+
+window.openImportBiblioteca=()=>{
+  _importFilter='all';
+  _importSelected=new Set();
+  document.getElementById('tpl-import-panel').style.display='block';
+  renderImportList();
+};
+
+window.closeImportBiblioteca=()=>{
+  document.getElementById('tpl-import-panel').style.display='none';
+};
+
+window.setImportFilter=(phase,btn)=>{
+  _importFilter=phase;
+  document.querySelectorAll('#tpl-import-phase-filter .rpill').forEach(b=>{
+    b.className='rpill'+(b.dataset.phase===phase?' on-e':'');
+  });
+  renderImportList();
+};
+
+function renderImportList(){
+  const wrap=document.getElementById('tpl-import-list');
+  if(!wrap)return;
+  const all=S.cfgTasks||[];
+  const filtered=_importFilter==='all'?all:all.filter(t=>t.phase===_importFilter);
+  if(!filtered.length){
+    wrap.innerHTML='<div class="empty" style="padding:10px">Nenhuma tarefa nesta categoria.</div>';
+    return;
+  }
+  const faseLabel={'onb':'Onboarding','impl':'Implementação','gest':'Gestão','esc':'Escala','rot':'Rotina'};
+  const catLabel={'msgs':'Msgs','traf':'Tráfego','copy':'Copy','gmn':'GMN','ind':'Indicadores','comercial':'Comercial','financeiro':'Financeiro','estrategia':'Estratégia','outro':'Outro'};
+  wrap.innerHTML=filtered.map(t=>{
+    const sel=_importSelected.has(t.id);
+    return'<div style="display:flex;align-items:center;gap:8px;padding:7px 6px;border-bottom:1px solid var(--bd);cursor:pointer;'+(sel?'background:var(--bl-bg)':'')+'" data-tid="'+t.id+'" onclick="toggleImportSel(this.dataset.tid,this)">'
+      +'<div style="width:16px;height:16px;border-radius:4px;border:1px solid var(--bd2);background:'+(sel?'var(--bl)':'transparent')+';flex-shrink:0;display:flex;align-items:center;justify-content:center">'
+      +(sel?'<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5L8 3" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>':'')
+      +'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:12px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+t.txt+'</div>'
+      +'<div style="display:flex;gap:6px;margin-top:2px">'
+      +'<span style="font-size:10px;color:var(--mu)">'+( faseLabel[t.phase]||t.phase)+'</span>'
+      +'<span style="font-size:10px;color:var(--mu2)">·</span>'
+      +'<span style="font-size:10px;color:var(--mu)">'+( catLabel[t.cat]||t.cat)+'</span>'
+      +(t.resp&&t.resp!=='Todos'?'<span style="font-size:10px;color:var(--mu2)">·</span><span style="font-size:10px;color:var(--mu)">'+t.resp+'</span>':'')
+      +'</div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+  updateImportCount();
+}
+
+window.toggleImportSel=(id,row)=>{
+  if(_importSelected.has(id)){
+    _importSelected.delete(id);
+    row.style.background='';
+    row.querySelector('div').style.background='transparent';
+    row.querySelector('div').innerHTML='';
+  } else {
+    _importSelected.add(id);
+    row.style.background='var(--bl-bg)';
+    row.querySelector('div').style.background='var(--bl)';
+    row.querySelector('div').innerHTML='<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5L8 3" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>';
+  }
+  updateImportCount();
+};
+
+function updateImportCount(){
+  const el=document.getElementById('tpl-import-count');
+  if(el)el.textContent=_importSelected.size+' selecionada'+(parseInt(_importSelected.size)!==1?'s':'');
+}
+
+window.importSelecionadas=()=>{
+  if(!_importSelected.size){showToast('Selecione ao menos uma tarefa');return;}
+  const cfgTasks=S.cfgTasks||[];
+  _importSelected.forEach(id=>{
+    const cfg=cfgTasks.find(t=>t.id===id);if(!cfg)return;
+    // Avoid duplicates
+    if(_tplTarefas.some(t=>t.txt===cfg.txt))return;
+    _tplTarefas.push({
+      id:uid(),
+      txt:cfg.txt,
+      fase:cfg.phase||'gest',
+      cat:cfg.cat||'outro',
+      resp:cfg.resp||'Todos',
+      diasAposInicio:0,
+      urgente:false,
+      desc:cfg.desc||''
+    });
+  });
+  _importSelected.clear();
+  closeImportBiblioteca();
+  renderTplTarefasList();
+  showToast('✓ Tarefas importadas da biblioteca');
+};
+
 window.setCpFilter=(f)=>{
   cpFilter=f;
   document.querySelectorAll('[id^=cpf-]').forEach(b=>{
@@ -4597,6 +4977,8 @@ window.autoAssignColabTasks=autoAssignColabTasks;
 
 // ── CONFIG TAREFAS ──
 function renderConfig(){
+  // Also refresh templates if on templates tab
+  if(_cfgTab==='templates'){renderTemplatesList();return;}
   if(!S)return;
   const cfgTasks=S.cfgTasks||[];
   const tabsEl=document.getElementById('cfg-tabs');tabsEl.innerHTML='';
