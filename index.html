@@ -898,7 +898,10 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
     <div class="form-row"><label class="form-label">Descrição</label><input class="ti" id="mt-txt" style="width:100%"/></div>
     <div class="form-row"><label class="form-label">Anotação / observação</label><textarea class="ta" id="mt-note" placeholder="Contexto, observação ou evidência..."></textarea></div>
     <div class="form-row"><label class="form-label">Responsável</label><div class="resp-pills" id="mt-resp-pills"></div></div>
-    <div class="form-row"><label class="form-label">Status</label><div class="st-row"><button type="button" class="st-btn" id="mt-st-pend" onclick="setTS('pend')">⏳ Pendente</button><button type="button" class="st-btn" id="mt-st-ok" onclick="setTS('ok')">✓ Concluída</button></div></div>
+    <div class="grid2" style="gap:10px">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Prazo (opcional)</label><input class="ti" type="date" id="mt-prazo" style="width:100%"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Status</label><div class="st-row"><button type="button" class="st-btn" id="mt-st-pend" onclick="setTS('pend')">⏳ Pendente</button><button type="button" class="st-btn" id="mt-st-ok" onclick="setTS('ok')">✓ Concluída</button></div></div>
+    </div>
     <div class="form-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--tx)"><input type="checkbox" id="mt-urgent" style="accent-color:var(--rd);width:16px;height:16px"/> Marcar como urgente</label></div>
     <div class="form-actions"><button class="ghost" onclick="closeModal('modal-task')">Cancelar</button><button class="go" onclick="saveTaskModal()">Salvar</button></div>
   </div>
@@ -1842,15 +1845,22 @@ function renderInternalTasks(){
   if(empty)empty.style.display='none';
 
   const renderTask=(t,isDone)=>{
-    const atrasado=!isDone&&t.prazo&&t.prazo<today;
-    const prazoStr=t.prazo?new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}):'';
+    // Deadline badge (same logic as tkHtml)
+    let prazoBadgeInt='';
+    if(t.prazo&&!isDone){
+      const diff=Math.ceil((new Date(t.prazo+'T12:00')-new Date())/(1000*60*60*24));
+      if(diff<0)prazoBadgeInt='<span style="font-size:10px;background:var(--rd-bg);color:var(--rd);border:1px solid var(--rd-bd);padding:1px 6px;border-radius:6px">⚠ atrasado '+Math.abs(diff)+'d</span>';
+      else if(diff===0)prazoBadgeInt='<span style="font-size:10px;background:var(--rd-bg);color:var(--rd);border:1px solid var(--rd-bd);padding:1px 6px;border-radius:6px">🔴 vence hoje</span>';
+      else if(diff<=2)prazoBadgeInt='<span style="font-size:10px;background:var(--am-bg);color:var(--am);border:1px solid var(--am-bd);padding:1px 6px;border-radius:6px">🟡 vence em '+diff+'d</span>';
+      else prazoBadgeInt='<span style="font-size:10px;color:var(--mu)">📅 '+new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+'</span>';
+    }
     return'<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);'+(isDone?'opacity:.6':'')+'">'
       +'<div class="cb'+(isDone?' on':'')+'" data-tid="'+t.id+'" onclick="toggleInternalTask(this.dataset.tid)" style="flex-shrink:0;margin-top:2px"></div>'
       +'<div style="flex:1;min-width:0">'
-      +'<div style="font-size:13px;color:var(--tx);'+(isDone?'text-decoration:line-through;color:var(--mu)':'')+'">'+t.txt+'</div>'
+      +'<div style="font-size:13px;color:var(--tx);'+(isDone?'text-decoration:line-through;color:var(--mu)':'')+'">'+ t.txt+'</div>'
       +'<div style="display:flex;gap:8px;align-items:center;margin-top:3px;flex-wrap:wrap">'
       +(t.urgent&&!isDone?'<span style="font-size:10px;background:var(--rd-bg);color:var(--rd);border:1px solid var(--rd-bd);padding:1px 6px;border-radius:6px">urgente</span>':'')
-      +(prazoStr?'<span style="font-size:10px;color:'+(atrasado?'var(--rd)':'var(--mu)')+'">📅 '+prazoStr+(atrasado?' — ATRASADO':'')+'</span>':'')
+      +prazoBadgeInt
       +'<span class="tag" style="font-size:10px">'+t.resp+'</span>'
       +(t.note?'<span style="font-size:10px;color:var(--mu2);font-style:italic">'+t.note.slice(0,60)+(t.note.length>60?'...':'')+'</span>':'')
       +'</div>'
@@ -2319,6 +2329,8 @@ window.openTaskModal=(id)=>{
   document.getElementById('mt-txt').value=t.txt||'';
   document.getElementById('mt-note').value=t.note||'';
   document.getElementById('mt-urgent').checked=!!t.urgent;
+  const mtPrazo=document.getElementById('mt-prazo');
+  if(mtPrazo)mtPrazo.value=t.prazo||'';
   taskSelectedResps=[t.r||'Duda'];
   taskStatus=t.done?'ok':'pend';
   renderRespPills('mt-resp-pills',taskSelectedResps,'task');
@@ -2331,6 +2343,7 @@ window.saveTaskModal=()=>{
   const t=S.tasks[taskModalCtx];if(!t)return;
   t.txt=document.getElementById('mt-txt').value.trim()||t.txt;
   t.note=document.getElementById('mt-note').value.trim();
+  t.prazo=document.getElementById('mt-prazo')?.value||t.prazo||'';
   t.r=taskSelectedResps.join('+');
   t.done=taskStatus==='ok';
   t.urgent=document.getElementById('mt-urgent').checked;
