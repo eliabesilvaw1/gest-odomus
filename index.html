@@ -1874,7 +1874,7 @@ function renderOverview(){
   const smartAlerts=[];
   activeClients.forEach(c=>{
     const ci=clients.indexOf(c);
-    if(c.semMsg){smartAlerts.push({icon:'💬',txt:'<b>'+c.name+'</b> — sem mensagem há mais de 2 dias',level:'critico',nav:'gestao',ci});al++;}
+    if(c.semMsg){smartAlerts.push({icon:'💬',txt:'<b>'+c.name+'</b> — sem mensagem há mais de 2 dias',level:'critico',nav:'gestao',ci,tipo:'semMsg'});al++;}
     // Video atrasado
     (S.videos||[]).filter(v=>v.clientId===c.id&&v.etapa!=='entregue'&&v.prazo&&v.prazo<today&&!v.isReferencia).forEach(v=>{
       smartAlerts.push({icon:'🎬',txt:'<b>'+c.name+'</b> — vídeo atrasado: '+v.titulo,level:'critico',nav:'conteudo',ci});al++;
@@ -1993,23 +1993,40 @@ function renderOverview(){
 window.smartAlertClick=(i)=>{
   const a=(window._smartAlerts||[])[i];if(!a)return;
   const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8,conteudo:9};
-  if(!a.nav)return;
+
+  // If it has a taskId → open task directly in tarefas tab
+  if(a.taskId&&a.ci!==undefined){
+    activeClient=a.ci;
+    goNav('clientes',document.querySelectorAll('.nav-btn')[navMap['clientes']]);
+    setTimeout(()=>{renderClientes();openTaskModal(a.taskId);},150);
+    return;
+  }
+
+  // Sem mensagem → go to gestao ficha do cliente
+  if(a.tipo==='semMsg'&&a.ci!==undefined){
+    activeGestaoClient=a.ci;
+    goNav('gestao',document.querySelectorAll('.nav-btn')[navMap['gestao']]);
+    setTimeout(()=>renderGestao(),100);
+    return;
+  }
+
+  // Pagamento → go to financeiro
+  if(a.nav==='financeiro'){
+    goNav('financeiro',document.querySelectorAll('.nav-btn')[navMap['financeiro']]);
+    return;
+  }
+
+  // Conteudo → go to conteudo
+  if(a.nav==='conteudo'){
+    goNav('conteudo',document.querySelectorAll('.nav-btn')[navMap['conteudo']]);
+    return;
+  }
+
+  // Default fallback
   goNav(a.nav,document.querySelectorAll('.nav-btn')[navMap[a.nav]||0]);
   if(a.ci!==undefined){
     if(a.nav==='gestao'){activeGestaoClient=a.ci;renderGestao();}
     if(a.nav==='clientes'){activeClient=a.ci;renderClientes();}
-  }
-  // If task exists, open it directly — go to tarefas tab automatically
-  if(a.taskId){
-    setTimeout(()=>{
-      if(a.goTab==='tarefas'){
-        // Switch to tarefas tab in client ficha
-        document.querySelectorAll('.client-tab').forEach(t=>t.classList.remove('on'));
-        const tarTab=document.querySelector('.client-tab[data-tab="tarefas"]');
-        if(tarTab){tarTab.classList.add('on');renderClientTabs('tarefas',activeClient);}
-      }
-      openTaskModal(a.taskId);
-    },300);
   }
 };
 
