@@ -639,7 +639,10 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
     <div class="sec" id="sec-gestao">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div><div class="pg-title">Gestão de Clientes</div><div class="pg-sub" style="margin-bottom:0">Ficha completa, histórico permanente e acompanhamento de processos.</div></div>
-        <button class="c-btn" onclick="openModal('modal-client')">+ Novo cliente</button>
+        <div style="display:flex;gap:8px">
+          <button class="ghost" onclick="cleanDoneTasks()" style="font-size:12px;padding:5px 12px" title="Remove tarefas concluídas das fichas de clientes">🧹 Limpar concluídas</button>
+          <button class="c-btn" onclick="openModal('modal-client')">+ Novo cliente</button>
+        </div>
       </div>
       <div class="chips" id="gestao-chips"></div>
       <div id="gestao-detail"></div>
