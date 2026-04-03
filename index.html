@@ -1406,7 +1406,7 @@ let activeGestaoClient=0;
 let activeGestaoTab='ficha';
 let taskModalCtx=null;
 let cfgTaskModalCtx=null;
-let cfgSelectedResps=['Duda'];
+let cfgSelectedResps=['Todos'];
 let taskSelectedResps=['Duda'];
 let taskStatus='pend';
 let cfgActivePhase='all';
@@ -1417,13 +1417,13 @@ let phuTasks=[];
 let phuCatFilter='all';
 let phuTargetClientIdx=-1;
 let hnType='note';
-let hnSelectedResps=['Duda'];
+let hnSelectedResps=['Todos'];
 
 const PHASES={onb:'Onboarding',impl:'Implementação',gest:'Gestão Mensal',esc:'Escala',rot:'Rotina Geral'};
 const CATS={msgs:'Mensagens',traf:'Tráfego',copy:'Copy/Conteúdo',gmn:'GMN',ind:'Indicadores',comercial:'Comercial',financeiro:'Financeiro',estrategia:'Estratégia',outro:'Outro'};
 const PHASE_CLASS={onb:'phase-onb',impl:'phase-impl',gest:'phase-gest',esc:'phase-esc',rot:'phase-rot'};
 const PH_BADGE_MAP={gest:'ph-g',impl:'ph-b',onb:'ph-a',esc:'ph-p'};
-const RESP_LIST_BASE=['Alonso','Duda','Eliabe','Todos'];
+const RESP_LIST_BASE=['Todos']; // Dynamic — populated from colaboradores
 function getRespList(){
   if(!S||!S.colaboradores||!S.colaboradores.length)return RESP_LIST_BASE;
   const tags=[...new Set((S.colaboradores||[]).map(c=>c.tag).filter(Boolean))];
@@ -1434,11 +1434,16 @@ function getRespList(){
   return all;
 }
 const TITLES={overview:'Visão Geral',gestao:'Gestão de Clientes',clientes:'Tarefas',rotina:'Rotina Diária',financeiro:'Financeiro',prospeccao:'Prospecção',revisao:'Revisão Interna',colaboradores:'Colaboradores',config:'Config. Tarefas',conteudo:'Produção de Conteúdo'};
-const HIST_COLORS={Alonso:'var(--bl-bg)',Duda:'var(--pu-bg)',Eliabe:'var(--gn-bg)',Todos:'var(--am-bg)'};
-const HIST_TEXT={Alonso:'var(--bl)',Duda:'var(--pu)',Eliabe:'var(--gn)',Todos:'var(--am)'};
+function getHistColor(r){if(!r||r==='Todos')return'var(--am-bg)';const c=(S?.colaboradores||[]).find(x=>x.tag===r);return c?.color||'var(--sf3)';}
+function getHistText(r){if(!r||r==='Todos')return'var(--am)';const c=(S?.colaboradores||[]).find(x=>x.tag===r);return c?.textColor||'var(--mu)';}
 const HIST_TYPE_LABEL={note:'Anotação',entrega:'Entrega',reuniao:'Reunião',alerta:'Alerta',task:'Tarefa concluída',phase:'Mudança de etapa'};
 
-function tc(r){if(!r||r==='Todos')return'tag-t';if(r==='Alonso')return'tag-a';if(r==='Duda')return'tag-d';if(r==='Eliabe')return'tag-e';return'tag-t';}
+function tc(r){
+  if(!r||r==='Todos')return'tag-t';
+  const c=(S?.colaboradores||[]).find(x=>x.tag===r);
+  if(c){const cls={bl:'tag-a',pu:'tag-d',gn:'tag-e',am:'tag-t'};const col=(c.textColor||'').includes('bl')?'bl':(c.textColor||'').includes('pu')?'pu':(c.textColor||'').includes('gn')?'gn':'am';return cls[col]||'tag-t';}
+  return'tag-t';
+}
 function tg(r){return`<span class="tag ${tc(r)}">${r||'—'}</span>`;}
 function fmtDate(ts){const d=new Date(ts);return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});}
 
@@ -1943,7 +1948,8 @@ function renderGestao(){
           </select>
           <span style="font-size:11px;color:var(--mu)">Resp:</span>
           <select class="sel" id="gst-resp" style="font-size:11px;padding:3px 8px">
-            ${['Duda','Alonso','Eliabe'].map(r=>`<option${c.resp===r?' selected':''}>${r}</option>`).join('')}
+            ${(S.colaboradores||[]).map(col=>`<option value="${col.tag}"${c.resp===col.tag?' selected':''}>${col.tag}</option>`).join('')}
+            <option value="Todos"${c.resp==='Todos'?' selected':''}>Todos</option>
           </select>
         </div>
       </div>
@@ -2099,7 +2105,7 @@ window.delHistEntry=(ci,hi)=>{
 
 // MODAL: add note to history
 window.openHistNoteModal=()=>{
-  hnType='note';hnSelectedResps=['Duda'];
+  hnType='note';hnSelectedResps=[S.colaboradores?.[0]?.tag||'Todos'];
   setHnType('note');
   document.getElementById('hn-txt').value='';
   renderRespPills('hn-resp-pills',hnSelectedResps,'hn');
@@ -4418,8 +4424,8 @@ function renderConfig(){
 }
 window.openCfgTaskModal=(id)=>{
   cfgTaskModalCtx=id||null;
-  if(id){const t=(S.cfgTasks||[]).find(x=>x.id===id);if(!t)return;document.getElementById('cft-txt').value=t.txt||'';document.getElementById('cft-desc').value=t.desc||'';document.getElementById('cft-phase').value=t.phase||'gest';document.getElementById('cft-cat').value=t.cat||'msgs';cfgSelectedResps=[t.resp||'Duda'];document.getElementById('cfg-modal-title').textContent='Editar tarefa padrão';}
-  else{document.getElementById('cft-txt').value='';document.getElementById('cft-desc').value='';document.getElementById('cft-phase').value='gest';document.getElementById('cft-cat').value='msgs';cfgSelectedResps=['Duda'];document.getElementById('cfg-modal-title').textContent='Nova tarefa padrão';}
+  if(id){const t=(S.cfgTasks||[]).find(x=>x.id===id);if(!t)return;document.getElementById('cft-txt').value=t.txt||'';document.getElementById('cft-desc').value=t.desc||'';document.getElementById('cft-phase').value=t.phase||'gest';document.getElementById('cft-cat').value=t.cat||'msgs';cfgSelectedResps=[t.resp||S.colaboradores?.[0]?.tag||'Todos'];document.getElementById('cfg-modal-title').textContent='Editar tarefa padrão';}
+  else{document.getElementById('cft-txt').value='';document.getElementById('cft-desc').value='';document.getElementById('cft-phase').value='gest';document.getElementById('cft-cat').value='msgs';cfgSelectedResps=[S.colaboradores?.[0]?.tag||'Todos'];document.getElementById('cfg-modal-title').textContent='Nova tarefa padrão';}
   renderRespPills('cfg-resp-pills',cfgSelectedResps,'cfg');
   // Wire days pills
   const currentDays=id?(S.cfgTasks||[]).find(x=>x.id===id)?.days||[]:[];
