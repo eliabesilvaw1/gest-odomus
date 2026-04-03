@@ -2639,20 +2639,31 @@ window.saveClient=()=>{
   const gestaoBtn=document.querySelectorAll('.nav-btn')[1];
   if(gestaoBtn)goNav('gestao',gestaoBtn);
 
-  // ── OFFER REMAINING CFG TASKS ──
-  const alreadyTxts=new Set((S.clients[S.clients.length-1].taskIds||[]).map(id=>{const t=T(id);return t?t.txt.toLowerCase():''}));
-  const matching=(S.cfgTasks||[]).filter(t=>t.phase===phase&&!alreadyTxts.has(t.txt.toLowerCase()));
-  if(matching.length>0){
-    const newClientIdx=S.clients.length-1;
-    setTimeout(()=>{
-      if(colabAdded>0)showToast(`✓ ${colabAdded} tarefa(s) atribuídas automaticamente`);
-      openPhaseUpgradeModal(phase,'',matching,newClientIdx);
-    },300);
+  // ── OFFER REMAINING CFG TASKS (only if no template was applied) ──
+  if(!templateId){
+    const alreadyTxts=new Set((S.clients[S.clients.length-1].taskIds||[]).map(id=>{const t=T(id);return t?t.txt.toLowerCase():''}));
+    const matching=(S.cfgTasks||[]).filter(t=>t.phase===phase&&!alreadyTxts.has(t.txt.toLowerCase()));
+    if(matching.length>0){
+      const newClientIdx=S.clients.length-1;
+      setTimeout(()=>{
+        if(colabAdded>0)showToast(`✓ ${colabAdded} tarefa(s) atribuídas automaticamente`);
+        openPhaseUpgradeModal(phase,'',matching,newClientIdx);
+      },300);
+    } else {
+      const msgs=[];
+      if(colabAdded>0)msgs.push(`${colabAdded} tarefa(s) atribuídas`);
+      if(valor)msgs.push('registro financeiro criado');
+      if(msgs.length)showToast('✓ '+msgs.join(' · '));
+    }
   } else {
+    // Template applied — just show confirmation
+    const tpl=(S.templates||[]).find(t=>t.id===templateId);
+    const count=tpl?.tarefas?.length||0;
     const msgs=[];
-    if(colabAdded>0)msgs.push(`${colabAdded} tarefa(s) atribuídas`);
+    if(count>0)msgs.push(count+' tarefa'+(count!==1?'s':'')+' do template criadas');
+    if(colabAdded>0)msgs.push(colabAdded+' tarefa(s) atribuídas');
     if(valor)msgs.push('registro financeiro criado');
-    if(msgs.length)showToast('✓ '+msgs.join(' · '));
+    showToast('✓ '+( msgs.join(' · ')||'Cliente criado'));
   }
 };
 
