@@ -861,6 +861,49 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
   </div>
 </div>
 
+<!-- MODAL: Indicadores semanais -->
+<div class="modal-bg" id="modal-indicador">
+  <div class="modal" style="width:460px">
+    <div class="modal-hd">
+      <div class="modal-title">Registrar indicadores da semana</div>
+      <button class="modal-close" onclick="closeModal('modal-indicador')">×</button>
+    </div>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:12px">Registre os 4 indicadores enviados pelo cliente esta semana.</div>
+    <div class="grid2" style="gap:10px">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Faturamento (R$)</label><input class="ti" id="ind-fat" type="number" style="width:100%" placeholder="Ex: 15000"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Pacientes / clientes</label><input class="ti" id="ind-pac" type="number" style="width:100%" placeholder="Ex: 45"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Ticket médio (R$)</label><input class="ti" id="ind-ticket" type="number" style="width:100%" placeholder="Ex: 333"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Leads gerados</label><input class="ti" id="ind-leads" type="number" style="width:100%" placeholder="Ex: 28"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Agendamentos</label><input class="ti" id="ind-agend" type="number" style="width:100%" placeholder="Ex: 12"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Data de referência</label><input class="ti" type="date" id="ind-data" style="width:100%"/></div>
+    </div>
+    <div class="form-row"><label class="form-label">Observação (opcional)</label><input class="ti" id="ind-obs" style="width:100%" placeholder="Ex: semana com feriado, campanha nova..."/></div>
+    <div class="form-actions">
+      <button class="ghost" onclick="closeModal('modal-indicador')">Cancelar</button>
+      <button class="go" onclick="saveIndicador()">Salvar indicadores</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Instagram snapshot -->
+<div class="modal-bg" id="modal-ig-snapshot">
+  <div class="modal" style="width:380px">
+    <div class="modal-hd">
+      <div class="modal-title">Registrar seguidores</div>
+      <button class="modal-close" onclick="closeModal('modal-ig-snapshot')">×</button>
+    </div>
+    <div class="grid2" style="gap:10px">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Seguidores hoje</label><input class="ti" id="ig-snap-seg" type="number" style="width:100%" placeholder="Ex: 1250"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Data</label><input class="ti" type="date" id="ig-snap-data" style="width:100%"/></div>
+    </div>
+    <div class="form-row"><label class="form-label">Observação (opcional)</label><input class="ti" id="ig-snap-obs" style="width:100%" placeholder="Ex: após campanha de reels..."/></div>
+    <div class="form-actions">
+      <button class="ghost" onclick="closeModal('modal-ig-snapshot')">Cancelar</button>
+      <button class="go" onclick="saveIgSnapshot()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Tarefa interna -->
 <div class="modal-bg" id="modal-internal-task">
   <div class="modal" style="width:480px">
@@ -2748,6 +2791,8 @@ function renderGestao(){
     <div class="cl-tabs">
       <button class="cl-tab${activeGestaoTab==='ficha'?' on':''}" onclick="switchGestaoTab('ficha')">Ficha</button>
       <button class="cl-tab${activeGestaoTab==='tarefas'?' on':''}" onclick="switchGestaoTab('tarefas')">Tarefas (${ids.length})</button>
+      <button class="cl-tab${activeGestaoTab==='instagram'?' on':''}" onclick="switchGestaoTab('instagram')">📱 Instagram</button>
+      <button class="cl-tab${activeGestaoTab==='indicadores'?' on':''}" onclick="switchGestaoTab('indicadores')">📈 Indicadores</button>
       <button class="cl-tab${activeGestaoTab==='historico'?' on':''}" onclick="switchGestaoTab('historico')">Histórico (${hist.length})</button>
     </div>
 
@@ -2793,6 +2838,115 @@ function renderGestao(){
             return '<span style="font-size:11px;color:var(--gn)">✓ Último relatório há '+diff+' dia'+(diff!==1?'s':'')+'</span>';
           })()}
         </div>
+      </div>
+    </div>
+
+    <!-- INSTAGRAM -->
+    <div class="cl-tab-content${activeGestaoTab==='instagram'?' on':''}">
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">📱 Perfil do Instagram</div>
+        <div class="ficha-grid" style="margin-bottom:12px">
+          ${fichaField('Handle (@)','ig_handle',c.ig_handle,'@handle do perfil')}
+          ${fichaField('Nome do perfil','ig_nome',c.ig_nome,'+ nome exibido')}
+          ${fichaField('Link da bio','ig_link',c.ig_link,'link.tree/...')}
+          ${fichaField('Seguidores atuais','ig_seguidores',c.ig_seguidores,'+ número de seguidores')}
+        </div>
+        <div style="margin-bottom:12px">
+          <div class="ficha-label" style="margin-bottom:6px">Bio atual</div>
+          <textarea class="ta" id="gst-ig-bio" placeholder="Cole a bio atual do cliente aqui..." style="min-height:70px;width:100%">${c.ig_bio||''}</textarea>
+        </div>
+        <div style="margin-bottom:16px">
+          <div class="ficha-label" style="margin-bottom:6px">Nova versão da bio (em construção)</div>
+          <textarea class="ta" id="gst-ig-bio-new" placeholder="Nova bio sugerida..." style="min-height:70px;width:100%">${c.ig_bio_new||''}</textarea>
+        </div>
+        <button class="go" style="font-size:12px;padding:6px 14px" onclick="saveIgProfile()">Salvar perfil</button>
+      </div>
+
+      <!-- Prints do perfil -->
+      <div style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em">🖼 Prints do perfil</div>
+          <label style="cursor:pointer;background:var(--bl-bg);color:var(--bl);border:1px solid var(--bl-bd);border-radius:var(--rs);font-size:11px;padding:4px 10px;font-family:DM Sans,sans-serif">
+            + Adicionar print
+            <input type="file" accept="image/*" id="ig-print-upload" style="display:none" onchange="uploadIgPrint(this)"/>
+          </label>
+        </div>
+        <div id="ig-prints-list">
+          ${(()=>{
+            const prints=(c.ig_prints||[]);
+            if(!prints.length)return '<div class="empty" style="padding:16px">Nenhum print adicionado ainda.</div>';
+            return '<div style="display:flex;gap:10px;flex-wrap:wrap">'
+              +prints.map((p,i)=>
+                '<div style="position:relative;display:inline-block">'
+                +'<img src="'+p.data+'" style="width:140px;height:140px;object-fit:cover;border-radius:var(--rs);border:1px solid var(--bd2);cursor:pointer" onclick="viewIgPrint('+i+')" title="'+( p.label||'Print')+'">'
+                +'<div style="font-size:10px;color:var(--mu);text-align:center;margin-top:3px">'+( p.label||new Date(p.ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit'}))+'</div>'
+                +'<button onclick="delIgPrint('+i+')" style="position:absolute;top:3px;right:3px;background:var(--rd);color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">×</button>'
+                +'</div>'
+              ).join('')
+              +'</div>';
+          })()}
+        </div>
+      </div>
+
+      <!-- Histórico de seguidores -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em">📊 Evolução de seguidores</div>
+          <button class="c-btn" style="font-size:11px;padding:4px 10px" onclick="addIgSnapshot()">+ Registrar hoje</button>
+        </div>
+        <div id="ig-snapshots-list">
+          ${(()=>{
+            const snaps=(c.ig_snapshots||[]).slice().sort((a,b)=>b.ts-a.ts);
+            if(!snaps.length)return '<div class="empty">Nenhum registro ainda. Clique em "+ Registrar hoje" para começar.</div>';
+            return '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">'
+              +snaps.slice(0,12).map(s=>{
+                const d=new Date(s.ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit'});
+                return '<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--rs);padding:10px;text-align:center">'
+                  +'<div style="font-size:18px;font-weight:700;color:var(--bl)">'+parseInt(s.seg).toLocaleString('pt-BR')+'</div>'
+                  +'<div style="font-size:10px;color:var(--mu)">'+d+'</div>'
+                  +(s.obs?'<div style="font-size:10px;color:var(--mu2);margin-top:2px;font-style:italic">'+s.obs+'</div>':'')
+                  +'</div>';
+              }).join('')
+              +'</div>';
+          })()}
+        </div>
+      </div>
+    </div>
+
+    <!-- INDICADORES -->
+    <div class="cl-tab-content${activeGestaoTab==='indicadores'?' on':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em">📈 Indicadores semanais</div>
+        <button class="c-btn" style="font-size:11px;padding:4px 10px" onclick="openIndicadorModal()">+ Registrar semana</button>
+      </div>
+      <div id="indicadores-list">
+        ${(()=>{
+          const inds=(c.indicadores||[]).slice().sort((a,b)=>b.ts-a.ts);
+          if(!inds.length)return '<div class="empty">Nenhum indicador registrado. Clique em "+ Registrar semana" para começar.</div>';
+          return '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+            +'<thead><tr style="border-bottom:2px solid var(--bd)">'
+            +'<th style="text-align:left;padding:8px 10px;color:var(--mu);font-weight:500">Semana</th>'
+            +'<th style="text-align:right;padding:8px 10px;color:var(--mu);font-weight:500">Faturamento</th>'
+            +'<th style="text-align:right;padding:8px 10px;color:var(--mu);font-weight:500">Pacientes</th>'
+            +'<th style="text-align:right;padding:8px 10px;color:var(--mu);font-weight:500">Ticket médio</th>'
+            +'<th style="text-align:right;padding:8px 10px;color:var(--mu);font-weight:500">Leads</th>'
+            +'<th style="text-align:right;padding:8px 10px;color:var(--mu);font-weight:500">Agendamentos</th>'
+            +'</tr></thead><tbody>'
+            +inds.map((ind,i)=>{
+              const prev=inds[i+1];
+              const arrow=(cur,old)=>{if(!old||!cur)return '';const d=parseFloat(cur)-parseFloat(old);return d>0?'<span style="color:var(--gn);font-size:10px"> ▲</span>':d<0?'<span style="color:var(--rd);font-size:10px"> ▼</span>':'';};
+              const d=new Date(ind.ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+              return'<tr style="border-bottom:1px solid var(--bd);'+(i===0?'background:var(--sf2)':'')+'">'
+                +'<td style="padding:8px 10px;color:var(--mu)">'+d+'</td>'
+                +'<td style="text-align:right;padding:8px 10px;color:var(--gn);font-weight:500">R$ '+(parseFloat(ind.fat||0).toLocaleString('pt-BR'))+(arrow(ind.fat,prev?.fat))+'</td>'
+                +'<td style="text-align:right;padding:8px 10px">'+( ind.pac||'—')+(arrow(ind.pac,prev?.pac))+'</td>'
+                +'<td style="text-align:right;padding:8px 10px">R$ '+(ind.ticket||'—')+(arrow(ind.ticket,prev?.ticket))+'</td>'
+                +'<td style="text-align:right;padding:8px 10px">'+( ind.leads||'—')+(arrow(ind.leads,prev?.leads))+'</td>'
+                +'<td style="text-align:right;padding:8px 10px">'+( ind.agend||'—')+(arrow(ind.agend,prev?.agend))+'</td>'
+                +'</tr>';
+            }).join('')
+            +'</tbody></table></div>';
+        })()}
       </div>
     </div>
 
@@ -2856,6 +3010,127 @@ function editFichaField(field,el){
   inp.onblur=()=>{c[field]=inp.value.trim();dbW('clients',S.clients);renderGestao();};
   inp.onkeydown=ev=>{if(ev.key==='Enter')inp.blur();if(ev.key==='Escape')renderGestao();};
 }
+
+// ── INSTAGRAM + INDICADORES ──
+
+window.uploadIgPrint=(input)=>{
+  const c=S.clients[activeGestaoClient];if(!c||!input.files[0])return;
+  const file=input.files[0];
+  if(file.size>10*1024*1024){showToast('Imagem muito grande. Máximo 10MB.');return;}
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    // Auto-compress using canvas
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      const MAX=1200; // max dimension
+      let w=img.width,h=img.height;
+      if(w>MAX||h>MAX){
+        if(w>h){h=Math.round(h*MAX/w);w=MAX;}
+        else{w=Math.round(w*MAX/h);h=MAX;}
+      }
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      // Compress to jpeg 85% quality
+      const compressed=canvas.toDataURL('image/jpeg',0.85);
+      if(!c.ig_prints)c.ig_prints=[];
+      const label=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit'});
+      c.ig_prints.push({id:uid(),data:compressed,label,ts:Date.now()});
+      dbW('clients',S.clients);
+      renderGestao();
+      showToast('✓ Print adicionado');
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+  input.value='';
+};
+
+window.viewIgPrint=(idx)=>{
+  const c=S.clients[activeGestaoClient];if(!c)return;
+  const p=(c.ig_prints||[])[idx];if(!p)return;
+  // Open in lightbox
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  overlay.onclick=()=>document.body.removeChild(overlay);
+  const img=document.createElement('img');
+  img.src=p.data;
+  img.style.cssText='max-width:90vw;max-height:90vh;border-radius:8px;object-fit:contain';
+  overlay.appendChild(img);
+  document.body.appendChild(overlay);
+};
+
+window.delIgPrint=(idx)=>{
+  const c=S.clients[activeGestaoClient];if(!c)return;
+  showConfirm({icon:'🗑️',title:'Remover print?',msg:'Este print será removido permanentemente.',okLabel:'Remover',okClass:'danger',onOk:()=>{
+    c.ig_prints=(c.ig_prints||[]).filter((_,i)=>i!==idx);
+    dbW('clients',S.clients);
+    renderGestao();
+    showToast('Print removido');
+  }});
+};
+
+window.saveIgProfile=()=>{
+  const c=S.clients[activeGestaoClient];if(!c)return;
+  c.ig_bio=document.getElementById('gst-ig-bio')?.value||'';
+  c.ig_bio_new=document.getElementById('gst-ig-bio-new')?.value||'';
+  dbW('clients',S.clients);
+  showToast('✓ Perfil do Instagram salvo');
+};
+
+window.addIgSnapshot=()=>{
+  document.getElementById('ig-snap-seg').value='';
+  document.getElementById('ig-snap-obs').value='';
+  document.getElementById('ig-snap-data').value=new Date().toISOString().split('T')[0];
+  openModal('modal-ig-snapshot');
+};
+
+window.saveIgSnapshot=()=>{
+  const c=S.clients[activeGestaoClient];if(!c)return;
+  const seg=parseInt(document.getElementById('ig-snap-seg').value)||0;
+  if(!seg){showToast('Informe o número de seguidores');return;}
+  const obs=document.getElementById('ig-snap-obs').value.trim();
+  const data=document.getElementById('ig-snap-data').value;
+  if(!c.ig_snapshots)c.ig_snapshots=[];
+  c.ig_snapshots.push({id:uid(),seg,obs,ts:data?new Date(data+'T12:00').getTime():Date.now()});
+  // Update current follower count
+  c.ig_seguidores=String(seg);
+  dbW('clients',S.clients);
+  closeModal('modal-ig-snapshot');
+  renderGestao();
+  showToast('✓ Seguidores registrados: '+seg.toLocaleString('pt-BR'));
+};
+
+window.openIndicadorModal=()=>{
+  ['ind-fat','ind-pac','ind-ticket','ind-leads','ind-agend','ind-obs'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('ind-data').value=new Date().toISOString().split('T')[0];
+  openModal('modal-indicador');
+};
+
+window.saveIndicador=()=>{
+  const c=S.clients[activeGestaoClient];if(!c)return;
+  const fat=parseFloat(document.getElementById('ind-fat').value)||0;
+  const pac=parseInt(document.getElementById('ind-pac').value)||0;
+  const ticket=parseFloat(document.getElementById('ind-ticket').value)||0;
+  const leads=parseInt(document.getElementById('ind-leads').value)||0;
+  const agend=parseInt(document.getElementById('ind-agend').value)||0;
+  const obs=document.getElementById('ind-obs').value.trim();
+  const data=document.getElementById('ind-data').value;
+  if(!fat&&!pac&&!leads){showToast('Preencha ao menos um indicador');return;}
+  if(!c.indicadores)c.indicadores=[];
+  c.indicadores.push({id:uid(),fat,pac,ticket,leads,agend,obs,ts:data?new Date(data+'T12:00').getTime():Date.now()});
+  // Register in history
+  if(!c.history)c.history=[];
+  c.history.unshift({id:uid(),type:'note',
+    txt:`Indicadores registrados — Fat: R$ ${fat.toLocaleString('pt-BR')} · Pacientes: ${pac} · Leads: ${leads}`,
+    who:currentColab?.tag||'Equipe',ts:Date.now()});
+  dbW('clients',S.clients);
+  closeModal('modal-indicador');
+  renderGestao();
+  showToast('✓ Indicadores registrados');
+};
 
 window.saveLastMsg=(dateStr)=>{
   const c=S.clients[activeGestaoClient];if(!c)return;
