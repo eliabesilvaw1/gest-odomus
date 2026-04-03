@@ -618,9 +618,19 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
       <div class="card">
         <div class="card-head">
           <div class="card-title"><div class="cdot cdot-b"></div>Rotina do dia</div>
-          <button class="reset-btn" onclick="resetRotina()"><svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 11-1.1-3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 2v3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Resetar semana</button>
+          <button class="ghost" onclick="forceMonthlyRecurrence()" style="font-size:11px;padding:3px 10px;margin-right:6px" title="Forçar recorrência mensal">🔄 Recorrência</button><button class="reset-btn" onclick="resetRotina()"><svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 11-1.1-3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 2v3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Resetar semana</button>
         </div>
         <div id="ov-rot-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px"></div>
+      </div>
+
+      <!-- TAREFAS INTERNAS -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><div class="cdot" style="background:var(--pu)"></div>Tarefas internas — Domus</div>
+          <button class="c-btn" onclick="openInternalTaskModal()" style="background:var(--pu-bg);color:var(--pu);border-color:var(--pu-bd);font-size:11px;padding:4px 10px">+ Nova tarefa interna</button>
+        </div>
+        <div id="internal-tasks-list"></div>
+        <div id="internal-tasks-empty" class="empty" style="display:none">Nenhuma tarefa interna pendente. Ótimo! 🎉</div>
       </div>
     </div>
 
@@ -652,7 +662,7 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
           <button class="reset-btn" id="rot-week-nav-prev" onclick="navRotWeek(-1)">← Semana anterior</button>
           <button class="reset-btn" id="rot-week-nav-today" onclick="navRotWeek(0)">Hoje</button>
           <button class="reset-btn" id="rot-week-nav-next" onclick="navRotWeek(1)">Semana seguinte →</button>
-          <button class="reset-btn" onclick="resetRotina()"><svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 11-1.1-3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 2v3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Resetar</button>
+          <button class="ghost" onclick="forceMonthlyRecurrence()" style="font-size:11px;padding:3px 10px;margin-right:6px" title="Forçar recorrência mensal">🔄 Recorrência</button><button class="reset-btn" onclick="resetRotina()"><svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 11-1.1-3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 2v3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Resetar</button>
         </div>
       </div>
       <div id="rot-week-label" style="font-size:12px;color:var(--mu);margin-bottom:12px;font-family:'DM Mono',monospace"></div>
@@ -826,6 +836,39 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
 
   </div>
 </main>
+
+<!-- MODAL: Tarefa interna -->
+<div class="modal-bg" id="modal-internal-task">
+  <div class="modal" style="width:480px">
+    <div class="modal-hd">
+      <div class="modal-title" id="internal-task-modal-title">Nova tarefa interna</div>
+      <button class="modal-close" onclick="closeModal('modal-internal-task')">×</button>
+    </div>
+    <div class="form-row"><label class="form-label">Descrição da tarefa</label>
+      <input class="ti" id="it-txt" style="width:100%" placeholder="Ex: Renovar contrato do Canva, Organizar pasta do Drive..."/>
+    </div>
+    <div class="grid2" style="gap:10px">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Responsável</label>
+        <select class="sel" id="it-resp" style="width:100%"><option value="Todos">Todos</option></select>
+      </div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Prazo (opcional)</label>
+        <input class="ti" type="date" id="it-prazo" style="width:100%"/>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label">Anotação (opcional)</label>
+      <textarea class="ta" id="it-note" placeholder="Detalhes, contexto, links..."></textarea>
+    </div>
+    <div class="form-row">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--tx)">
+        <input type="checkbox" id="it-urgent" style="accent-color:var(--rd);width:16px;height:16px"/> Marcar como urgente
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="ghost" onclick="closeModal('modal-internal-task')">Cancelar</button>
+      <button class="go" onclick="saveInternalTask()">Salvar</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL: Tarefa -->
 <div class="modal-bg" id="modal-task">
@@ -1427,6 +1470,8 @@ const DEF={
   ],
   cfgTasks:[],
   templates:[], // [{id, nome, descricao, segmento, tarefas:[{txt,fase,cat,resp,diasAposInicio,urgente,desc}]}]
+  lastMonthlyRun:'', // tracks last month recurrence ran
+  internalTasks:[], // tarefas avulsas internas da Domus
   videos:[],
   socios:[
     {id:'soc1',name:'Alonso',perc:33.33,color:'var(--bl-bg)',tc:'var(--bl)'},
@@ -1572,7 +1617,7 @@ function fixS(s){
   });
   // Fix top-level arrays
   if(!s.despesas)s.despesas=[];
-  ['fin','finTasks','funil','prospTasks','procTasks','despesas','socios','videos','templates'].forEach(k=>{
+  ['fin','finTasks','funil','prospTasks','procTasks','despesas','socios','videos','templates','internalTasks'].forEach(k=>{
     if(!s[k])s[k]=DEF[k]||[];
     else s[k]=fbArr(s[k]);
   });
@@ -1689,7 +1734,236 @@ function showApp(){
   if(sidebar)sidebar.style.display='flex';
   if(content)content.style.display='block';
   applyAccessControl();
-  setTimeout(()=>renderAll(),50);
+  setTimeout(()=>{renderAll();checkMonthlyRecurrence();},50);
+}
+
+// ── MONTHLY RECURRENCE ──
+// ── TAREFAS INTERNAS ──
+let _internalTaskCtx=null;
+
+window.openInternalTaskModal=(id)=>{
+  _internalTaskCtx=id||null;
+  document.getElementById('internal-task-modal-title').textContent=id?'Editar tarefa interna':'Nova tarefa interna';
+  const sel=document.getElementById('it-resp');
+  if(sel){
+    const opts='<option value="Todos">Todos</option>'+(S.colaboradores||[]).map(c=>'<option value="'+c.tag+'">'+c.tag+'</option>').join('');
+    sel.innerHTML=opts;
+  }
+  if(id){
+    const t=(S.internalTasks||[]).find(x=>x.id===id);
+    if(t){
+      document.getElementById('it-txt').value=t.txt||'';
+      document.getElementById('it-note').value=t.note||'';
+      document.getElementById('it-prazo').value=t.prazo||'';
+      document.getElementById('it-urgent').checked=!!t.urgent;
+      if(sel)sel.value=t.resp||'Todos';
+    }
+  } else {
+    document.getElementById('it-txt').value='';
+    document.getElementById('it-note').value='';
+    document.getElementById('it-prazo').value='';
+    document.getElementById('it-urgent').checked=false;
+  }
+  openModal('modal-internal-task');
+};
+
+window.saveInternalTask=()=>{
+  const txt=document.getElementById('it-txt').value.trim();
+  if(!txt){showToast('Informe a descrição da tarefa');return;}
+  const resp=document.getElementById('it-resp').value||'Todos';
+  const prazo=document.getElementById('it-prazo').value;
+  const note=document.getElementById('it-note').value.trim();
+  const urgent=document.getElementById('it-urgent').checked;
+  if(!S.internalTasks)S.internalTasks=[];
+  if(_internalTaskCtx){
+    const t=S.internalTasks.find(x=>x.id===_internalTaskCtx);
+    if(t)Object.assign(t,{txt,resp,prazo,note,urgent});
+  } else {
+    S.internalTasks.push({id:uid(),txt,resp,prazo,note,urgent,done:false,criadoEm:Date.now()});
+  }
+  dbW('internalTasks',S.internalTasks);
+  closeModal('modal-internal-task');
+  renderInternalTasks();
+  showToast('✓ Tarefa interna salva');
+};
+
+window.toggleInternalTask=(id)=>{
+  const t=(S.internalTasks||[]).find(x=>x.id===id);if(!t)return;
+  t.done=!t.done;
+  dbW('internalTasks',S.internalTasks);
+  renderInternalTasks();
+  renderOverview(); // update counts
+};
+
+window.delInternalTask=(id)=>{
+  showConfirm({icon:'🗑️',title:'Remover tarefa?',msg:'Esta tarefa interna será removida permanentemente.',okLabel:'Remover',okClass:'danger',onOk:()=>{
+    S.internalTasks=(S.internalTasks||[]).filter(x=>x.id!==id);
+    dbW('internalTasks',S.internalTasks);
+    renderInternalTasks();
+  }});
+};
+
+function renderInternalTasks(){
+  const wrap=document.getElementById('internal-tasks-list');
+  const empty=document.getElementById('internal-tasks-empty');
+  if(!wrap||!S)return;
+  const tasks=(S.internalTasks||[]);
+  const pending=tasks.filter(t=>!t.done);
+  const done=tasks.filter(t=>t.done);
+  const today=new Date().toISOString().split('T')[0];
+
+  if(!tasks.length){
+    wrap.innerHTML='';
+    if(empty)empty.style.display='block';
+    return;
+  }
+  if(empty)empty.style.display='none';
+
+  const renderTask=(t,isDone)=>{
+    const atrasado=!isDone&&t.prazo&&t.prazo<today;
+    const prazoStr=t.prazo?new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}):'';
+    return'<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);'+(isDone?'opacity:.6':'')+'">'
+      +'<div class="cb'+(isDone?' on':'')+'" data-tid="'+t.id+'" onclick="toggleInternalTask(this.dataset.tid)" style="flex-shrink:0;margin-top:2px"></div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:13px;color:var(--tx);'+(isDone?'text-decoration:line-through;color:var(--mu)':'')+'">'+t.txt+'</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;margin-top:3px;flex-wrap:wrap">'
+      +(t.urgent&&!isDone?'<span style="font-size:10px;background:var(--rd-bg);color:var(--rd);border:1px solid var(--rd-bd);padding:1px 6px;border-radius:6px">urgente</span>':'')
+      +(prazoStr?'<span style="font-size:10px;color:'+(atrasado?'var(--rd)':'var(--mu)')+'">📅 '+prazoStr+(atrasado?' — ATRASADO':'')+'</span>':'')
+      +'<span class="tag" style="font-size:10px">'+t.resp+'</span>'
+      +(t.note?'<span style="font-size:10px;color:var(--mu2);font-style:italic">'+t.note.slice(0,60)+(t.note.length>60?'...':'')+'</span>':'')
+      +'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:4px;flex-shrink:0">'
+      +'<button data-tid="'+t.id+'" onclick="openInternalTaskModal(this.dataset.tid)" style="background:transparent;border:none;color:var(--mu);cursor:pointer;font-size:11px;padding:2px 6px">✏</button>'
+      +'<button data-tid="'+t.id+'" onclick="delInternalTask(this.dataset.tid)" style="background:transparent;border:none;color:var(--rd);cursor:pointer;font-size:11px;padding:2px 6px">×</button>'
+      +'</div>'
+      +'</div>';
+  };
+
+  // Pending sorted by urgency + deadline
+  const sorted=[...pending].sort((a,b)=>{
+    if(a.urgent&&!b.urgent)return -1;if(b.urgent&&!a.urgent)return 1;
+    if(a.prazo&&b.prazo)return a.prazo.localeCompare(b.prazo);
+    if(a.prazo)return -1;if(b.prazo)return 1;
+    return 0;
+  });
+
+  let html=sorted.map(t=>renderTask(t,false)).join('');
+
+  // Done tasks — collapsible
+  if(done.length){
+    html+='<div style="font-size:11px;color:var(--mu2);padding:8px 0 4px;cursor:pointer" onclick="toggleNext(this)">'
+      +'▼ '+done.length+' concluída'+(done.length!==1?'s':'')+'</div>'
+      +'<div style="display:none">'+done.map(t=>renderTask(t,true)).join('')+'</div>';
+  }
+
+  wrap.innerHTML=html;
+
+  // Update pending count in overview metrics
+  const mvPe=document.getElementById('mv-pe');
+  if(mvPe){
+    const cur=parseInt(mvPe.textContent)||0;
+    // Add internal pending to count (already counted? no — add separately)
+  }
+}
+
+window.forceMonthlyRecurrence=()=>{
+  showConfirm({icon:'🔄',title:'Forçar recorrência mensal?',
+    msg:'Gera receitas e tarefas do mês atual para todos os clientes ativos. Use apenas se a recorrência automática não rodou.',
+    okLabel:'Executar',okClass:'safe',
+    onOk:()=>{
+      const mes=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+      S.lastMonthlyRun=''; // reset to force rerun
+      runMonthlyRecurrence(mes);
+      showToast('✓ Recorrência mensal executada');
+    }
+  });
+};
+function checkMonthlyRecurrence(){
+  if(!S)return;
+  const now=new Date();
+  const mesAtual=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const lastRun=S.lastMonthlyRun||'';
+  if(lastRun===mesAtual)return; // already ran this month
+
+  // Run silently — generate new month's recurring tasks
+  runMonthlyRecurrence(mesAtual);
+}
+
+function runMonthlyRecurrence(mes){
+  if(!S)return;
+  const now=new Date();
+  let changed=false;
+  const log=[];
+
+  // ── 1. Generate fin entries for indeterminate contracts ──
+  const activeClients=(S.clients||[]).filter(c=>c.active!==false);
+  activeClients.forEach(c=>{
+    if(!c.valor||parseFloat(c.valor)<=0)return;
+    // Check if already has an entry for this month
+    const alreadyHas=(S.fin||[]).some(f=>(f.clientId===c.id||f.client===c.name)&&f.mes===mes);
+    if(alreadyHas)return;
+    // Check if this is an indeterminate contract (contratoIndeterminado flag or no duracao)
+    const lastFin=(S.fin||[]).filter(f=>f.clientId===c.id||f.client===c.name).sort((a,b)=>b.mes.localeCompare(a.mes))[0];
+    if(!lastFin)return; // no history, skip
+    if(!lastFin.contratoIndeterminado&&lastFin.contratoDuracao)return; // fixed contract, skip
+    // Generate new monthly entry
+    if(!S.fin)S.fin=[];
+    S.fin.push({
+      id:uid(),clientId:c.id,client:c.name,
+      val:parseFloat(c.valor)||0,
+      venc:lastFin.venc||5,
+      forma:lastFin.forma||'Pix',
+      status:'pending',dataPag:'',mes,
+      servicos:lastFin.servicos||{},
+      parcInfo:'mensal',
+      contratoIndeterminado:true
+    });
+    changed=true;
+    log.push('Receita gerada: '+c.name);
+  });
+
+  // ── 2. Reset rotina tasks for new month ──
+  // Mark all rotina tasks as not done (fresh start of month)
+  let rotinaReset=0;
+  Object.values(S.rotina||{}).flat().forEach(id=>{
+    const t=S.tasks[id];
+    if(t&&t.done){t.done=false;rotinaReset++;changed=true;}
+  });
+  if(rotinaReset>0)log.push(rotinaReset+' tarefas de rotina resetadas');
+
+  // ── 3. Generate monthly tasks from cfgTasks with phase 'rot' ──
+  const rotTasks=(S.cfgTasks||[]).filter(t=>t.phase==='rot');
+  activeClients.forEach(c=>{
+    rotTasks.forEach(cfg=>{
+      const alreadyHas=(c.taskIds||[]).some(id=>{const t=S.tasks[id];return t&&t.txt===cfg.txt&&!t.done;});
+      if(alreadyHas)return;
+      const taskId=uid();
+      S.tasks[taskId]={id:taskId,txt:cfg.txt,r:cfg.resp||'Todos',done:false,urgent:false,note:cfg.desc||''};
+      if(!c.taskIds)c.taskIds=[];
+      c.taskIds.push(taskId);
+      changed=true;
+    });
+  });
+
+  if(changed){
+    S.lastMonthlyRun=mes;
+    const writes={lastMonthlyRun:mes};
+    if((S.fin||[]).length)writes.fin=S.fin;
+    writes.tasks=S.tasks;
+    writes.clients=S.clients;
+    dbWMulti(writes);
+    renderAll();
+    if(log.length){
+      setTimeout(()=>{
+        showToast('🔄 Novo mês: '+log.slice(0,2).join(' · ')+(log.length>2?' +'+( log.length-2)+' mais':''));
+      },1000);
+    }
+  } else {
+    // Just mark as ran even if no changes
+    S.lastMonthlyRun=mes;
+    dbW('lastMonthlyRun',mes);
+  }
 }
 
 // ── ACCESS CONTROL ──
@@ -1935,6 +2209,8 @@ function renderOverview(){
   document.getElementById('mv-cl').textContent=activeClients.length;
   let pe=0,al=0,sm=0;
   activeClients.forEach(c=>{if(c.semMsg)sm++;(c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&!t.done){pe++;if(t.urgent)al++;}});});
+  // Add internal tasks to counts
+  (S.internalTasks||[]).filter(t=>!t.done).forEach(t=>{pe++;if(t.urgent)al++;});
   Object.values(S.rotina||{}).forEach(a=>(a||[]).forEach(id=>{const t=T(id);if(t&&!t.done)pe++;}));
   (S.finTasks||[]).forEach(id=>{const t=T(id);if(t&&!t.done){pe++;if(t.urgent)al++;}});
   let doneCount=0;
@@ -5155,7 +5431,7 @@ window.renderAll=function(){
     const cur=el.value;el.innerHTML=opts;
     if([...el.options].some(o=>o.value===cur))el.value=cur;
   });
-  renderOverview();renderGestao();renderClientes();renderRotina();renderFinanceiro();renderProspeccao();renderRevisao();renderColaboradores();renderConfig();renderConteudo();
+  renderOverview();renderGestao();renderClientes();renderRotina();renderFinanceiro();renderProspeccao();renderRevisao();renderColaboradores();renderConfig();renderConteudo();renderInternalTasks();
 };
 
 // ── DATE ──
