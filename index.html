@@ -1861,89 +1861,64 @@ function renderOverview(){
   activeClients.forEach(c=>{if(c.semMsg)sm++;(c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&!t.done){pe++;if(t.urgent)al++;}});});
   Object.values(S.rotina||{}).forEach(a=>(a||[]).forEach(id=>{const t=T(id);if(t&&!t.done)pe++;}));
   (S.finTasks||[]).forEach(id=>{const t=T(id);if(t&&!t.done){pe++;if(t.urgent)al++;}});
-
-  // ── SMART ALERTS (intelligent, proactive) ──
-  const today=new Date().toISOString().split('T')[0];
-  const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
-  const tomorrowStr=tomorrow.toISOString().split('T')[0];
-  const in3days=new Date();in3days.setDate(in3days.getDate()+3);
-  const in3daysStr=in3days.toISOString().split('T')[0];
-
-  const smartAlerts=[];
-
-  activeClients.forEach(c=>{
-    const ci=clients.indexOf(c);
-    // Sem mensagem
-    if(c.semMsg)smartAlerts.push({icon:'💬',txt:'<b>'+c.name+'</b> — sem mensagem há mais de 2 dias',level:'critico',nav:'gestao',ci});
-    // Vídeo atrasado
-    (S.videos||[]).filter(v=>v.clientId===c.id&&v.etapa!=='entregue'&&v.prazo&&v.prazo<today&&!v.isReferencia).forEach(v=>{
-      smartAlerts.push({icon:'🎬',txt:'<b>'+c.name+'</b> — vídeo atrasado: '+v.titulo,level:'critico',nav:'conteudo',ci});
-      al++;
-    });
-    // Gravação amanhã
-    (S.videos||[]).filter(v=>v.clientId===c.id&&v.dataGrav===tomorrowStr).forEach(v=>{
-      smartAlerts.push({icon:'📅',txt:'<b>'+c.name+'</b> — gravação amanhã: '+v.titulo,level:'atencao',nav:'conteudo',ci});
-    });
-    // Tarefas urgentes abertas
-    (c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done)smartAlerts.push({icon:'🔥',txt:'<b>'+c.name+'</b> — '+t.txt,level:'critico',nav:'gestao',ci,taskId:id});});
-  });
-
-  // Pagamentos vencendo em 3 dias
-  (S.fin||[]).filter(f=>{
-    if(f.status==='ok')return false;
-    const mesAtual=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
-    if(f.mes!==mesAtual)return false;
-    const vencDia=parseInt(f.venc||0);
-    const todayDia=new Date().getDate();
-    return vencDia>0&&vencDia>=todayDia&&vencDia<=todayDia+3;
-  }).forEach(f=>{
-    smartAlerts.push({icon:'💰',txt:'<b>'+f.client+'</b> — pagamento vence em '+(parseInt(f.venc)-new Date().getDate())+' dia(s)',level:'atencao',nav:'financeiro'});
-  });
-
-  // Pagamentos em atraso
-  (S.fin||[]).filter(f=>{
-    if(f.status==='ok')return false;
-    const mesAtual=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
-    if(f.mes>mesAtual)return false;
-    const vencDia=parseInt(f.venc||0);
-    return vencDia>0&&new Date().getDate()>vencDia&&f.mes===new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
-  }).forEach(f=>{
-    smartAlerts.push({icon:'💰',txt:'<b>'+f.client+'</b> — pagamento em atraso (venceu dia '+f.venc+')',level:'critico',nav:'financeiro'});
-    al++;
-  });
-
-  // Tarefas financeiras urgentes
-  (S.finTasks||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done){smartAlerts.push({icon:'💳',txt:'<b>Financeiro</b> — '+t.txt,level:'critico',nav:'financeiro',taskId:id});al++;}});
-
-  // Sort: critico first
-  smartAlerts.sort((a,b)=>a.level==='critico'&&b.level!=='critico'?-1:1);
-
-  // Update counters
-  document.getElementById('mv-al').textContent=al;
-  document.getElementById('mv-pe').textContent=pe;
-  document.getElementById('mv-sm').textContent=sm;
-  document.getElementById('nav-badge').textContent=al||'';
   let doneCount=0;
   activeClients.forEach(c=>(c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&t.done)doneCount++;}));
   Object.values(S.rotina||{}).forEach(a=>(a||[]).forEach(id=>{const t=T(id);if(t&&t.done)doneCount++;}));
   const mvDone=document.getElementById('mv-done');if(mvDone)mvDone.textContent=doneCount;
 
-  // Render smart alerts banner
+  const today=new Date().toISOString().split('T')[0];
+  const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
+  const tomorrowStr=tomorrow.toISOString().split('T')[0];
+
+  // ── SMART ALERTS ──
+  const smartAlerts=[];
+  activeClients.forEach(c=>{
+    const ci=clients.indexOf(c);
+    if(c.semMsg){smartAlerts.push({icon:'💬',txt:'<b>'+c.name+'</b> — sem mensagem há mais de 2 dias',level:'critico',nav:'gestao',ci});al++;}
+    // Video atrasado
+    (S.videos||[]).filter(v=>v.clientId===c.id&&v.etapa!=='entregue'&&v.prazo&&v.prazo<today&&!v.isReferencia).forEach(v=>{
+      smartAlerts.push({icon:'🎬',txt:'<b>'+c.name+'</b> — vídeo atrasado: '+v.titulo,level:'critico',nav:'conteudo',ci});al++;
+    });
+    // Gravação amanhã
+    (S.videos||[]).filter(v=>v.clientId===c.id&&v.dataGrav===tomorrowStr&&v.etapa!=='entregue').forEach(v=>{
+      smartAlerts.push({icon:'📅',txt:'<b>'+c.name+'</b> — gravação amanhã: '+v.titulo,level:'atencao',nav:'conteudo',ci});
+    });
+    // Tarefas urgentes
+    (c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done){smartAlerts.push({icon:'🔥',txt:'<b>'+c.name+'</b> — '+t.txt,level:'critico',nav:'clientes',ci,taskId:id,goTab:'tarefas'});al++;}});
+  });
+  // Pagamentos
+  const mesAtual=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+  const diaHoje=new Date().getDate();
+  (S.fin||[]).forEach(f=>{
+    if(f.status==='ok'||f.mes!==mesAtual)return;
+    const v=parseInt(f.venc||0);if(!v)return;
+    if(diaHoje>v){smartAlerts.push({icon:'💰',txt:'<b>'+f.client+'</b> — pagamento em atraso (venceu dia '+v+')',level:'critico',nav:'financeiro'});al++;}
+    else if(v-diaHoje<=3){smartAlerts.push({icon:'💰',txt:'<b>'+f.client+'</b> — pagamento vence em '+(v-diaHoje)+' dia(s) (dia '+v+')',level:'atencao',nav:'financeiro'});}
+  });
+  // Fin urgentes
+  (S.finTasks||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done){smartAlerts.push({icon:'💳',txt:'<b>Financeiro</b> — '+t.txt,level:'critico',nav:'financeiro',taskId:id});al++;}});
+  smartAlerts.sort((a,b)=>a.level==='critico'&&b.level!=='critico'?-1:1);
+
+  document.getElementById('mv-al').textContent=al;
+  document.getElementById('mv-pe').textContent=pe;
+  document.getElementById('mv-sm').textContent=sm;
+  document.getElementById('nav-badge').textContent=al||'';
+  window._smartAlerts=smartAlerts;
+
+  // Render smart banner
   const smartEl=document.getElementById('ov-smart-alerts');
   if(smartEl){
     if(smartAlerts.length>0){
       smartEl.innerHTML='<div class="card" style="margin-bottom:0;border-color:var(--rd-bd)">'
         +'<div class="card-head"><div class="card-title"><div class="cdot cdot-r"></div>Atenção agora</div>'
         +'<span style="font-size:11px;color:var(--mu)">'+smartAlerts.length+' alerta'+(smartAlerts.length>1?'s':'')+' ativo'+(smartAlerts.length>1?'s':'')+'</span></div>'
-        +smartAlerts.slice(0,8).map((a,i)=>{
-          const navIdx={gestao:1,financeiro:4,conteudo:8}[a.nav]||0;
-          return'<div class="alert-smart" style="cursor:pointer" onclick="smartAlertClick('+i+')">'
-            +'<span class="alert-smart-icon">'+a.icon+'</span>'
-            +'<div class="alert-smart-txt">'+a.txt+'</div>'
-            +'<span class="alert-smart-badge badge-'+(a.level==='critico'?'critico':'atencao')+'">'+a.level+'</span>'
-            +'<span style="font-size:11px;color:var(--mu)">→</span>'
-            +'</div>';
-        }).join('')
+        +smartAlerts.slice(0,8).map((a,i)=>
+          '<div class="alert-smart" style="cursor:pointer" onclick="smartAlertClick('+i+')">'
+          +'<span class="alert-smart-icon">'+a.icon+'</span>'
+          +'<div class="alert-smart-txt">'+a.txt+'</div>'
+          +'<span class="alert-smart-badge badge-'+(a.level==='critico'?'critico':'atencao')+'">'+a.level+'</span>'
+          +'<span style="font-size:11px;color:var(--mu)">→</span></div>'
+        ).join('')
         +'</div>';
     } else {
       smartEl.innerHTML='<div style="background:var(--gn-bg);border:1px solid var(--gn-bd);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:10px">'
@@ -1952,15 +1927,14 @@ function renderOverview(){
         +'<div style="font-size:11px;color:var(--mu)">Nenhum alerta crítico no momento.</div></div>'
         +'</div>';
     }
-    window._smartAlerts=smartAlerts;
   }
 
-  // Legacy alerts
+  // Legacy alerts (card "Alertas urgentes")
   const items=[];
-  activeClients.forEach((c)=>{
+  activeClients.forEach(c=>{
     const ci=clients.indexOf(c);
     if(c.semMsg)items.push({type:'r',text:'<b>'+c.name+'</b> — sem mensagem há mais de 2 dias',badge:'urgente',nav:'gestao',ci,taskId:null});
-    (c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done)items.push({type:'r',text:'<b>'+c.name+'</b> — '+t.txt,badge:'urgente',nav:'gestao',ci,taskId:id});});
+    (c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done)items.push({type:'r',text:'<b>'+c.name+'</b> — '+t.txt,badge:'urgente',nav:'clientes',ci,taskId:id,goTab:'tarefas'});});
   });
   (S.finTasks||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done)items.push({type:'a',text:'<b>Financeiro</b> — '+t.txt,badge:'atenção',nav:'financeiro',taskId:id});});
   if(!items.length)items.push({type:'g',text:'Todos os processos em dia',badge:'ok',nav:null});
@@ -1969,8 +1943,8 @@ function renderOverview(){
     '<div class="alert-item al-'+a.type+'" onclick="alertClick('+i+')"><div class="al-dot"></div><div class="al-txt">'+a.text+'</div><span class="al-badge">'+a.badge+'</span>'+(a.nav?'<span style="font-size:11px;color:var(--mu)">→</span>':'')+'</div>'
   ).join('');
 
-  // ── HEALTH CARDS per client ──
-  document.getElementById('ov-clients').innerHTML=activeClients.map((c)=>{
+  // ── HEALTH CARDS ──
+  document.getElementById('ov-clients').innerHTML=activeClients.map(c=>{
     const i=clients.indexOf(c);
     const health=calcClientHealth(c);
     const dotColor={g:'var(--gn)',a:'var(--am)',r:'var(--rd)'}[health.level];
@@ -1982,19 +1956,18 @@ function renderOverview(){
       +'<div class="health-dot" style="background:'+dotColor+'"></div>'
       +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
-      +'<div style="font-size:13px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+c.name+'</div>'
-      +'<span class="ph-badge '+(PH_BADGE_MAP[c.phase]||'ph-g')+'" style="flex-shrink:0">'+( PHASES[c.phase]||c.phase)+'</span>'
+      +'<div style="font-size:13px;font-weight:500;color:var(--tx)">'+c.name+'</div>'
+      +'<span class="ph-badge '+(PH_BADGE_MAP[c.phase]||'ph-g')+'">'+( PHASES[c.phase]||c.phase)+'</span>'
       +'</div>'
       +(topIssue?'<div style="font-size:11px;color:var(--mu)">'+topIssue.icon+' '+topIssue.txt+'</div>'
         :'<div style="font-size:11px;color:var(--gn)">✓ Tudo em dia</div>')
       +'<div style="margin-top:5px;display:flex;align-items:center;gap:6px">'
       +'<div class="ov-mini" style="flex:1;margin:0"><div class="ov-mini-fill" style="width:'+pct+'%"></div></div>'
-      +'<span style="font-size:10px;color:var(--mu);flex-shrink:0">'+pct+'%</span>'
-      +'</div>'
-      +'</div>'
-      +'</div>';
+      +'<span style="font-size:10px;color:var(--mu)">'+pct+'%</span>'
+      +'</div></div></div>';
   }).join('');
 
+  // Rotina columns
   const allRotIds=Object.values(S.rotina).flat();
   const activeColabs=(S.colaboradores||[]).filter(c=>c.tag);
   const grid=document.getElementById('ov-rot-grid');
@@ -2005,8 +1978,7 @@ function renderOverview(){
       const vidIds=[];
       (S.videos||[]).forEach(v=>{
         if(v.etapa==='entregue')return;
-        const tid=v.taskIds&&v.taskIds[v.etapa];
-        if(!tid)return;
+        const tid=v.taskIds&&v.taskIds[v.etapa];if(!tid)return;
         const t=S.tasks[tid];
         if(t&&!t.done&&(t.r===c.tag||t.r.includes(c.tag)))vidIds.push(tid);
       });
@@ -2016,21 +1988,37 @@ function renderOverview(){
     }).join('');
     if(!activeColabs.length)grid.innerHTML='<div class="empty">Nenhum colaborador cadastrado.</div>';
   }
-}
 
+}
 window.smartAlertClick=(i)=>{
   const a=(window._smartAlerts||[])[i];if(!a)return;
   const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8,conteudo:9};
-  if(a.nav)goNav(a.nav,document.querySelectorAll('.nav-btn')[navMap[a.nav]||0]);
-  if(a.nav==='gestao'&&a.ci!==undefined){activeGestaoClient=a.ci;renderGestao();}
-  if(a.taskId){setTimeout(()=>openTaskModal(a.taskId),300);}
+  if(!a.nav)return;
+  goNav(a.nav,document.querySelectorAll('.nav-btn')[navMap[a.nav]||0]);
+  if(a.ci!==undefined){
+    if(a.nav==='gestao'){activeGestaoClient=a.ci;renderGestao();}
+    if(a.nav==='clientes'){activeClient=a.ci;renderClientes();}
+  }
+  // If task exists, open it directly — go to tarefas tab automatically
+  if(a.taskId){
+    setTimeout(()=>{
+      if(a.goTab==='tarefas'){
+        // Switch to tarefas tab in client ficha
+        document.querySelectorAll('.client-tab').forEach(t=>t.classList.remove('on'));
+        const tarTab=document.querySelector('.client-tab[data-tab="tarefas"]');
+        if(tarTab){tarTab.classList.add('on');renderClientTabs('tarefas',activeClient);}
+      }
+      openTaskModal(a.taskId);
+    },300);
+  }
 };
 
 window.alertClick=(i)=>{
   const a=(window._alertItems||[])[i];if(!a||!a.nav)return;
-  const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8};
+  const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8,conteudo:9};
   goNav(a.nav,document.querySelectorAll('.nav-btn')[navMap[a.nav]||0]);
   if(a.nav==='gestao'&&a.ci!==undefined){activeGestaoClient=a.ci;renderGestao();}
+  if(a.nav==='clientes'&&a.ci!==undefined){activeClient=a.ci;renderClientes();}
   if(a.taskId){setTimeout(()=>openTaskModal(a.taskId),300);}
 };
 
