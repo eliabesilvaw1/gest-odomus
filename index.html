@@ -485,6 +485,25 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
 .cp-type-trafego{background:var(--am-bg);color:var(--am);font-size:10px;padding:1px 7px;border-radius:6px;font-weight:500}
 .cp-type-feed{background:var(--bl-bg);color:var(--bl);font-size:10px;padding:1px 7px;border-radius:6px;font-weight:500}
 .cp-type-ambos{background:var(--pu-bg);color:var(--pu);font-size:10px;padding:1px 7px;border-radius:6px;font-weight:500}
+
+/* HEALTH INDICATORS */
+.health-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block}
+.health-g{background:var(--gn)}
+.health-a{background:var(--am)}
+.health-r{background:var(--rd)}
+.health-card{background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px 14px;cursor:pointer;transition:border-color .14s;display:flex;align-items:center;gap:10px}
+.health-card:hover{border-color:var(--bd)}
+.health-card.health-border-r{border-left:3px solid var(--rd)}
+.health-card.health-border-a{border-left:3px solid var(--am)}
+.health-card.health-border-g{border-left:3px solid var(--gn)}
+.alert-smart{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd)}
+.alert-smart:last-child{border-bottom:none}
+.alert-smart-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.alert-smart-txt{flex:1;font-size:12px;color:var(--tx);line-height:1.5}
+.alert-smart-badge{font-size:10px;padding:2px 7px;border-radius:6px;font-weight:500;flex-shrink:0}
+.badge-critico{background:var(--rd-bg);color:var(--rd);border:1px solid var(--rd-bd)}
+.badge-atencao{background:var(--am-bg);color:var(--am);border:1px solid var(--am-bd)}
+.badge-info{background:var(--bl-bg);color:var(--bl);border:1px solid var(--bl-bd)}
 </style>
 </head>
 <body>
@@ -583,13 +602,16 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
         <div class="metric b" onclick="openOvPanel('semMsg')" title="Ver clientes sem mensagem"><div class="m-label">Sem mensagem +2d</div><div class="m-val" id="mv-sm">—</div><div class="m-sub">clique para ver →</div></div>
         <div class="metric" style="cursor:pointer" onclick="openOvPanel('concluidas')" title="Ver tarefas concluídas"><div class="m-label">Tarefas concluídas</div><div class="m-val" id="mv-done" style="color:var(--gn)">—</div><div class="m-sub">clique para ver →</div></div>
       </div>
+      <!-- SMART ALERTS -->
+      <div id="ov-smart-alerts" style="margin-bottom:16px"></div>
+
       <div class="grid2" style="margin-bottom:16px">
         <div class="card" style="margin-bottom:0">
           <div class="card-head"><div class="card-title"><div class="cdot cdot-r"></div>Alertas urgentes</div><span style="font-size:10px;color:var(--mu)">Clique para ir →</span></div>
           <div id="ov-alerts"><div class="loading">Carregando...</div></div>
         </div>
         <div class="card" style="margin-bottom:0">
-          <div class="card-head"><div class="card-title"><div class="cdot cdot-g"></div>Status dos clientes</div></div>
+          <div class="card-head"><div class="card-title"><div class="cdot cdot-g"></div>Saúde dos clientes</div><span style="font-size:10px;color:var(--mu)">🟢 ok · 🟡 atenção · 🔴 risco</span></div>
           <div id="ov-clients"><div class="loading">Carregando...</div></div>
         </div>
       </div>
@@ -1793,6 +1815,43 @@ let curTS='pend';
 window.setTS=(st)=>{curTS=st;taskStatus=st;document.getElementById('mt-st-ok').className='st-btn'+(st==='ok'?' on-ok':'');document.getElementById('mt-st-pend').className='st-btn'+(st==='pend'?' on-pend':'');};
 
 // ── OVERVIEW ──
+// ── HEALTH SCORE per client ──
+function calcClientHealth(c){
+  const today=new Date().toISOString().split('T')[0];
+  const now=Date.now();
+  const issues=[];let score=100;
+
+  // 1. Sem mensagem há mais de 2 dias
+  if(c.semMsg){score-=30;issues.push({icon:'💬',txt:'Sem mensagem há +2 dias',level:'r'});}
+
+  // 2. Tarefas urgentes em atraso
+  const urgentOverdue=(c.taskIds||[]).filter(id=>{const t=T(id);return t&&t.urgent&&!t.done;});
+  if(urgentOverdue.length>0){score-=25;issues.push({icon:'🔥',txt:urgentOverdue.length+' tarefa'+(urgentOverdue.length>1?'s':'')+ ' urgente'+(urgentOverdue.length>1?'s':'')+' em aberto',level:'r'});}
+
+  // 3. Vídeo com prazo passado
+  const videoAtrasado=(S.videos||[]).filter(v=>v.clientId===c.id&&v.etapa!=='entregue'&&v.prazo&&v.prazo<today&&!v.isReferencia);
+  if(videoAtrasado.length>0){score-=20;issues.push({icon:'🎬',txt:videoAtrasado.length+' vídeo'+(videoAtrasado.length>1?'s':'')+' atrasado'+(videoAtrasado.length>1?'s':''),level:'r'});}
+
+  // 4. Pagamento em atraso
+  const mesAtualH=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+  const pagAtraso=(S.fin||[]).filter(f=>(f.clientId===c.id||f.client===c.name)&&f.status!=='ok'&&f.mes===mesAtualH&&parseInt(f.venc||0)>0&&new Date().getDate()>parseInt(f.venc));
+  if(pagAtraso.length>0){score-=25;issues.push({icon:'💰',txt:'Pagamento em atraso',level:'r'});}
+
+  // 5. Gravação amanhã
+  const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
+  const tomorrowStr=tomorrow.toISOString().split('T')[0];
+  const gravAmanha=(S.videos||[]).filter(v=>v.clientId===c.id&&v.dataGrav===tomorrowStr&&v.etapa!=='entregue');
+  if(gravAmanha.length>0){issues.push({icon:'📅',txt:'Gravação amanhã: '+gravAmanha.map(v=>v.titulo).join(', ').slice(0,40),level:'a'});}
+
+  // 6. Sem relatório (histórico sem 'relatório' nos últimos 35 dias)
+  const hist=c.history||[];
+  const temRelatorio=hist.some(h=>h.ts&&(now-h.ts)<35*24*60*60*1000&&h.txt&&h.txt.toLowerCase().includes('relatório'));
+  if(!temRelatorio&&hist.length>0){score-=10;issues.push({icon:'📊',txt:'Sem registro de relatório há +35 dias',level:'a'});}
+
+  const level=score>=75?'g':score>=50?'a':'r';
+  return{score,level,issues};
+}
+
 function renderOverview(){
   if(!S)return;
   const clients=S.clients||[];
@@ -1802,29 +1861,138 @@ function renderOverview(){
   activeClients.forEach(c=>{if(c.semMsg)sm++;(c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&!t.done){pe++;if(t.urgent)al++;}});});
   Object.values(S.rotina||{}).forEach(a=>(a||[]).forEach(id=>{const t=T(id);if(t&&!t.done)pe++;}));
   (S.finTasks||[]).forEach(id=>{const t=T(id);if(t&&!t.done){pe++;if(t.urgent)al++;}});
-  document.getElementById('mv-al').textContent=al;document.getElementById('mv-pe').textContent=pe;document.getElementById('mv-sm').textContent=sm;document.getElementById('nav-badge').textContent=al;
-  // count done
+
+  // ── SMART ALERTS (intelligent, proactive) ──
+  const today=new Date().toISOString().split('T')[0];
+  const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
+  const tomorrowStr=tomorrow.toISOString().split('T')[0];
+  const in3days=new Date();in3days.setDate(in3days.getDate()+3);
+  const in3daysStr=in3days.toISOString().split('T')[0];
+
+  const smartAlerts=[];
+
+  activeClients.forEach(c=>{
+    const ci=clients.indexOf(c);
+    // Sem mensagem
+    if(c.semMsg)smartAlerts.push({icon:'💬',txt:'<b>'+c.name+'</b> — sem mensagem há mais de 2 dias',level:'critico',nav:'gestao',ci});
+    // Vídeo atrasado
+    (S.videos||[]).filter(v=>v.clientId===c.id&&v.etapa!=='entregue'&&v.prazo&&v.prazo<today&&!v.isReferencia).forEach(v=>{
+      smartAlerts.push({icon:'🎬',txt:'<b>'+c.name+'</b> — vídeo atrasado: '+v.titulo,level:'critico',nav:'conteudo',ci});
+      al++;
+    });
+    // Gravação amanhã
+    (S.videos||[]).filter(v=>v.clientId===c.id&&v.dataGrav===tomorrowStr).forEach(v=>{
+      smartAlerts.push({icon:'📅',txt:'<b>'+c.name+'</b> — gravação amanhã: '+v.titulo,level:'atencao',nav:'conteudo',ci});
+    });
+    // Tarefas urgentes abertas
+    (c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done)smartAlerts.push({icon:'🔥',txt:'<b>'+c.name+'</b> — '+t.txt,level:'critico',nav:'gestao',ci,taskId:id});});
+  });
+
+  // Pagamentos vencendo em 3 dias
+  (S.fin||[]).filter(f=>{
+    if(f.status==='ok')return false;
+    const mesAtual=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+    if(f.mes!==mesAtual)return false;
+    const vencDia=parseInt(f.venc||0);
+    const todayDia=new Date().getDate();
+    return vencDia>0&&vencDia>=todayDia&&vencDia<=todayDia+3;
+  }).forEach(f=>{
+    smartAlerts.push({icon:'💰',txt:'<b>'+f.client+'</b> — pagamento vence em '+(parseInt(f.venc)-new Date().getDate())+' dia(s)',level:'atencao',nav:'financeiro'});
+  });
+
+  // Pagamentos em atraso
+  (S.fin||[]).filter(f=>{
+    if(f.status==='ok')return false;
+    const mesAtual=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+    if(f.mes>mesAtual)return false;
+    const vencDia=parseInt(f.venc||0);
+    return vencDia>0&&new Date().getDate()>vencDia&&f.mes===new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+  }).forEach(f=>{
+    smartAlerts.push({icon:'💰',txt:'<b>'+f.client+'</b> — pagamento em atraso (venceu dia '+f.venc+')',level:'critico',nav:'financeiro'});
+    al++;
+  });
+
+  // Tarefas financeiras urgentes
+  (S.finTasks||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done){smartAlerts.push({icon:'💳',txt:'<b>Financeiro</b> — '+t.txt,level:'critico',nav:'financeiro',taskId:id});al++;}});
+
+  // Sort: critico first
+  smartAlerts.sort((a,b)=>a.level==='critico'&&b.level!=='critico'?-1:1);
+
+  // Update counters
+  document.getElementById('mv-al').textContent=al;
+  document.getElementById('mv-pe').textContent=pe;
+  document.getElementById('mv-sm').textContent=sm;
+  document.getElementById('nav-badge').textContent=al||'';
   let doneCount=0;
   activeClients.forEach(c=>(c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&t.done)doneCount++;}));
   Object.values(S.rotina||{}).forEach(a=>(a||[]).forEach(id=>{const t=T(id);if(t&&t.done)doneCount++;}));
   const mvDone=document.getElementById('mv-done');if(mvDone)mvDone.textContent=doneCount;
 
+  // Render smart alerts banner
+  const smartEl=document.getElementById('ov-smart-alerts');
+  if(smartEl){
+    if(smartAlerts.length>0){
+      smartEl.innerHTML='<div class="card" style="margin-bottom:0;border-color:var(--rd-bd)">'
+        +'<div class="card-head"><div class="card-title"><div class="cdot cdot-r"></div>Atenção agora</div>'
+        +'<span style="font-size:11px;color:var(--mu)">'+smartAlerts.length+' alerta'+(smartAlerts.length>1?'s':'')+' ativo'+(smartAlerts.length>1?'s':'')+'</span></div>'
+        +smartAlerts.slice(0,8).map((a,i)=>{
+          const navIdx={gestao:1,financeiro:4,conteudo:8}[a.nav]||0;
+          return'<div class="alert-smart" style="cursor:pointer" onclick="smartAlertClick('+i+')">'
+            +'<span class="alert-smart-icon">'+a.icon+'</span>'
+            +'<div class="alert-smart-txt">'+a.txt+'</div>'
+            +'<span class="alert-smart-badge badge-'+(a.level==='critico'?'critico':'atencao')+'">'+a.level+'</span>'
+            +'<span style="font-size:11px;color:var(--mu)">→</span>'
+            +'</div>';
+        }).join('')
+        +'</div>';
+    } else {
+      smartEl.innerHTML='<div style="background:var(--gn-bg);border:1px solid var(--gn-bd);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:10px">'
+        +'<span style="font-size:18px">✅</span>'
+        +'<div><div style="font-size:13px;font-weight:500;color:var(--gn)">Tudo em dia</div>'
+        +'<div style="font-size:11px;color:var(--mu)">Nenhum alerta crítico no momento.</div></div>'
+        +'</div>';
+    }
+    window._smartAlerts=smartAlerts;
+  }
+
+  // Legacy alerts
   const items=[];
-  activeClients.forEach((c,_)=>{
+  activeClients.forEach((c)=>{
     const ci=clients.indexOf(c);
-    if(c.semMsg)items.push({type:'r',text:`<b>${c.name}</b> — sem mensagem há mais de 2 dias`,badge:'urgente',nav:'gestao',ci,taskId:null});
-    (c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done)items.push({type:'r',text:`<b>${c.name}</b> — ${t.txt}`,badge:'urgente',nav:'gestao',ci,taskId:id});});
+    if(c.semMsg)items.push({type:'r',text:'<b>'+c.name+'</b> — sem mensagem há mais de 2 dias',badge:'urgente',nav:'gestao',ci,taskId:null});
+    (c.taskIds||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done)items.push({type:'r',text:'<b>'+c.name+'</b> — '+t.txt,badge:'urgente',nav:'gestao',ci,taskId:id});});
   });
-  (S.finTasks||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done)items.push({type:'a',text:`<b>Financeiro</b> — ${t.txt}`,badge:'atenção',nav:'financeiro',taskId:id});});
+  (S.finTasks||[]).forEach(id=>{const t=T(id);if(t&&t.urgent&&!t.done)items.push({type:'a',text:'<b>Financeiro</b> — '+t.txt,badge:'atenção',nav:'financeiro',taskId:id});});
   if(!items.length)items.push({type:'g',text:'Todos os processos em dia',badge:'ok',nav:null});
   window._alertItems=items;
   document.getElementById('ov-alerts').innerHTML=items.slice(0,6).map((a,i)=>
-    `<div class="alert-item al-${a.type}" onclick="alertClick(${i})"><div class="al-dot"></div><div class="al-txt">${a.text}</div><span class="al-badge">${a.badge}</span>${a.nav?'<span style="font-size:11px;color:var(--mu)">→</span>':''}</div>`
+    '<div class="alert-item al-'+a.type+'" onclick="alertClick('+i+')"><div class="al-dot"></div><div class="al-txt">'+a.text+'</div><span class="al-badge">'+a.badge+'</span>'+(a.nav?'<span style="font-size:11px;color:var(--mu)">→</span>':'')+'</div>'
   ).join('');
 
-  document.getElementById('ov-clients').innerHTML=activeClients.map((c)=>{const i=clients.indexOf(c);
-    const ids=c.taskIds||[];const done=ids.filter(id=>{const t=T(id);return t&&t.done;}).length;const pct=ids.length?Math.round(done/ids.length*100):0;
-    return`<div class="ov-cl" onclick="goToGestao(${i})"><div class="ov-cl-name">${c.name}</div><span class="ph-badge ${PH_BADGE_MAP[c.phase]||'ph-g'}">${PHASES[c.phase]||c.phase}</span><div class="ov-mini"><div class="ov-mini-fill" style="width:${pct}%"></div></div><div class="ov-pct">${pct}%</div></div>`;
+  // ── HEALTH CARDS per client ──
+  document.getElementById('ov-clients').innerHTML=activeClients.map((c)=>{
+    const i=clients.indexOf(c);
+    const health=calcClientHealth(c);
+    const dotColor={g:'var(--gn)',a:'var(--am)',r:'var(--rd)'}[health.level];
+    const ids=c.taskIds||[];
+    const done=ids.filter(id=>{const t=T(id);return t&&t.done;}).length;
+    const pct=ids.length?Math.round(done/ids.length*100):0;
+    const topIssue=health.issues[0];
+    return'<div class="health-card health-border-'+health.level+'" onclick="goToGestao('+i+')">'
+      +'<div class="health-dot" style="background:'+dotColor+'"></div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
+      +'<div style="font-size:13px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+c.name+'</div>'
+      +'<span class="ph-badge '+(PH_BADGE_MAP[c.phase]||'ph-g')+'" style="flex-shrink:0">'+( PHASES[c.phase]||c.phase)+'</span>'
+      +'</div>'
+      +(topIssue?'<div style="font-size:11px;color:var(--mu)">'+topIssue.icon+' '+topIssue.txt+'</div>'
+        :'<div style="font-size:11px;color:var(--gn)">✓ Tudo em dia</div>')
+      +'<div style="margin-top:5px;display:flex;align-items:center;gap:6px">'
+      +'<div class="ov-mini" style="flex:1;margin:0"><div class="ov-mini-fill" style="width:'+pct+'%"></div></div>'
+      +'<span style="font-size:10px;color:var(--mu);flex-shrink:0">'+pct+'%</span>'
+      +'</div>'
+      +'</div>'
+      +'</div>';
   }).join('');
 
   const allRotIds=Object.values(S.rotina).flat();
@@ -1849,6 +2017,14 @@ function renderOverview(){
     if(!activeColabs.length)grid.innerHTML='<div class="empty">Nenhum colaborador cadastrado.</div>';
   }
 }
+
+window.smartAlertClick=(i)=>{
+  const a=(window._smartAlerts||[])[i];if(!a)return;
+  const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8,conteudo:9};
+  if(a.nav)goNav(a.nav,document.querySelectorAll('.nav-btn')[navMap[a.nav]||0]);
+  if(a.nav==='gestao'&&a.ci!==undefined){activeGestaoClient=a.ci;renderGestao();}
+  if(a.taskId){setTimeout(()=>openTaskModal(a.taskId),300);}
+};
 
 window.alertClick=(i)=>{
   const a=(window._alertItems||[])[i];if(!a||!a.nav)return;
