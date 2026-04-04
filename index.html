@@ -4541,6 +4541,10 @@ window.toggleClientActive=(i)=>{
     ts:Date.now()
   });
   if(wasActive){
+    // Mark client tasks as paused (hidden from calendar but preserved)
+    (c.taskIds||[]).forEach(id=>{
+      if(S.tasks[id]&&!S.tasks[id].done)S.tasks[id]._paused=true;
+    });
     // Remove future UNPAID fin entries (from next month onwards)
     const now=new Date();
     const thisMes=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -4561,9 +4565,13 @@ window.toggleClientActive=(i)=>{
     }
     showToast(`⏸ ${c.name} pausado${removed>0?' — '+removed+' lançamento(s) futuro(s) removido(s)':''}`);
   } else {
-    showToast(`▶ ${c.name} reativado`);
+    // Restore paused tasks when reactivating
+    (c.taskIds||[]).forEach(id=>{
+      if(S.tasks[id])delete S.tasks[id]._paused;
+    });
+    showToast(`▶ ${c.name} reativado — tarefas restauradas`);
   }
-  dbW('clients',S.clients);
+  dbWMulti({clients:S.clients,tasks:S.tasks});
   renderAll();
 };
 
@@ -4581,18 +4589,23 @@ window.removeClient=(i)=>{
       const clientId=S.clients[i].id;
       const clientName=S.clients[i].name;
       auditLog('cliente_removido','Cliente: '+clientName);
-      (S.clients[i].taskIds||[]).forEach(id=>delete S.tasks[id]);
+      // Delete all tasks linked to this client
+      const taskIdsToDelete=S.clients[i].taskIds||[];
+      taskIdsToDelete.forEach(id=>delete S.tasks[id]);
+      // Also remove from rotina arrays (tasks that were in rotina for this client)
+      Object.keys(S.rotina||{}).forEach(key=>{
+        S.rotina[key]=(S.rotina[key]||[]).filter(id=>!taskIdsToDelete.includes(id));
+      });
       S.fin=(S.fin||[]).filter(f=>f.clientId!==clientId&&f.client!==clientName);
       S.clients.splice(i,1);
       activeClient=Math.max(0,i-1);
       activeGestaoClient=Math.max(0,i-1);
-      // Also remove videos for this client
       S.videos=(S.videos||[]).filter(v=>v.clientId!==clientId);
-      // Remove despesas linked to this client's videos
       S.despesas=(S.despesas||[]).filter(d=>!d.videoId||(S.videos||[]).some(v=>v.id===d.videoId));
-      dbWMulti({tasks:S.tasks,clients:S.clients,fin:S.fin,videos:S.videos,despesas:S.despesas});
+      // Clean orphan tasks from internalTasks that reference this client
+      dbWMulti({tasks:S.tasks,clients:S.clients,fin:S.fin,videos:S.videos,despesas:S.despesas,rotina:S.rotina});
       renderAll();
-      showToast('Cliente removido');
+      showToast('✓ Cliente e todas as tarefas removidos');
     }
   });
 };
@@ -4917,9 +4930,10 @@ function getTasksForDay(dayOfWeek){
   const dayDate2=weekDates2.find(d=>d.getDay()===dayOfWeek);
   const dayDateStr2=dayDate2?dayDate2.toISOString().split('T')[0]:'';
   const todayStr=new Date().toISOString().split('T')[0];
+  // Only active clients — paused clients' tasks don't appear in calendar
   (S.clients||[]).filter(c=>c.active!==false).forEach(c=>{
     (c.taskIds||[]).forEach(id=>{
-      const t=S.tasks[id];if(!t||t.done)return;
+      const t=S.tasks[id];if(!t||t.done||t._paused)return;
       if(t.prazo){
         // Show from today until deadline (inclusive), and after deadline if not done
         // - if prazo >= today: show on all days from today up to prazo
