@@ -3765,7 +3765,15 @@ function runMonthlyRecurrence(mes){
     const t=S.tasks[id];
     if(t&&t.done){t.done=false;rotinaReset++;changed=true;}
   });
-  if(rotinaReset>0)log.push(rotinaReset+' tarefas de rotina resetadas');
+  // Also reset 'gest' phase client tasks (monthly recurring tasks)
+  activeClients.forEach(c=>{
+    (c.taskIds||[]).forEach(id=>{
+      const t=S.tasks[id];if(!t||!t.done)return;
+      const cfg=(S.cfgTasks||[]).find(x=>x.txt.toLowerCase()===t.txt.toLowerCase());
+      if(cfg&&(cfg.phase==='gest'||cfg.phase==='rot')){t.done=false;rotinaReset++;changed=true;}
+    });
+  });
+  if(rotinaReset>0)log.push(rotinaReset+' tarefas de rotina/gestão resetadas');
 
   // ── 3. Generate monthly tasks from cfgTasks with phase 'rot' ──
   const rotTasks=(S.cfgTasks||[]).filter(t=>t.phase==='rot');
@@ -5554,6 +5562,24 @@ function getTasksForDay(dayOfWeek){
     const cfg=(S.cfgTasks||[]).find(c=>c.txt.toLowerCase()===t.txt.toLowerCase());
     const days=cfg?.days||[];
     if(!days.length||days.includes(dayOfWeek))add(id);
+  });
+  // 4. prospTasks e procTasks
+  [...(S.prospTasks||[]),...(S.procTasks||[])].forEach(id=>{
+    const t=S.tasks[id];if(!t||t.done)return;
+    add(id);
+  });
+  // 5. Tarefas internas da Domus
+  (S.internalTasks||[]).forEach(it=>{
+    if(!it||it.done)return;
+    // internalTasks are objects, not task IDs — add them via their id in S.tasks if exists
+    if(it.id&&S.tasks[it.id])add(it.id);
+  });
+  // 6. Vendas avulsas — tarefas vinculadas
+  (S.avulsos||[]).filter(av=>av.status!=='concluido'&&av.status!=='cancelado').forEach(av=>{
+    (av.taskIds||[]).forEach(id=>{
+      const t=S.tasks[id];if(!t||t.done)return;
+      add(id);
+    });
   });
   return result;
 }
