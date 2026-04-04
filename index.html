@@ -3071,49 +3071,88 @@ function renderGestao(){
   });
 
   // ── Top bar: tabs + search + filter ──
-  const topBar=document.createElement('div');
-  topBar.style.cssText='display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap';
+  // Only rebuild top bar if it doesn't exist yet (preserve focus on search input)
+  let topBar=chipsEl.querySelector('.gestao-topbar');
+  if(!topBar){
+    topBar=document.createElement('div');
+    topBar.className='gestao-topbar';
+    topBar.style.cssText='display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap';
 
-  // Active/Inactive tabs
-  const tabAtivo=document.createElement('button');
-  tabAtivo.type='button';tabAtivo.className='cl-tab-inactive'+((!gestaoShowInactive)?' on':'');
-  tabAtivo.textContent=`Ativos (${activeClients.length})`;
-  tabAtivo.onclick=()=>{gestaoShowInactive=false;_gestaoSearch='';_gestaoPhaseFilter='all';renderGestao();};
-  topBar.appendChild(tabAtivo);
+    const tabAtivo=document.createElement('button');
+    tabAtivo.type='button';tabAtivo.className='gestao-tab-ativo cl-tab-inactive'+((!gestaoShowInactive)?' on':'');
+    tabAtivo.textContent=`Ativos (${activeClients.length})`;
+    tabAtivo.onclick=()=>{gestaoShowInactive=false;_gestaoSearch='';_gestaoPhaseFilter='all';
+      chipsEl.querySelector('.gestao-tab-ativo')?.classList.toggle('on',true);
+      chipsEl.querySelector('.gestao-tab-inativo')?.classList.toggle('on',false);
+      renderGestao();};
+    topBar.appendChild(tabAtivo);
 
-  const tabInativo=document.createElement('button');
-  tabInativo.type='button';tabInativo.className='cl-tab-inactive'+(gestaoShowInactive?' on':'');
-  tabInativo.textContent=`Inativos (${inactiveClients.length})`;
-  tabInativo.onclick=()=>{gestaoShowInactive=true;_gestaoSearch='';_gestaoPhaseFilter='all';renderGestao();};
-  topBar.appendChild(tabInativo);
+    const tabInativo=document.createElement('button');
+    tabInativo.type='button';tabInativo.className='gestao-tab-inativo cl-tab-inactive'+(gestaoShowInactive?' on':'');
+    tabInativo.textContent=`Inativos (${inactiveClients.length})`;
+    tabInativo.onclick=()=>{gestaoShowInactive=true;_gestaoSearch='';_gestaoPhaseFilter='all';
+      chipsEl.querySelector('.gestao-tab-ativo')?.classList.toggle('on',false);
+      chipsEl.querySelector('.gestao-tab-inativo')?.classList.toggle('on',true);
+      renderGestao();};
+    topBar.appendChild(tabInativo);
 
-  // Phase filter
-  const phSel=document.createElement('select');
-  phSel.className='sel';phSel.style.cssText='font-size:11px;padding:3px 8px;min-width:130px';
-  const phases=[['all','Todas as fases'],['onb','Onboarding'],['impl','Implementação'],['gest','Gestão Mensal'],['esc','Escala']];
-  phases.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;if(v===_gestaoPhaseFilter)o.selected=true;phSel.appendChild(o);});
-  phSel.onchange=()=>{_gestaoPhaseFilter=phSel.value;renderGestao();};
-  topBar.appendChild(phSel);
+    const phSel=document.createElement('select');
+    phSel.className='sel gestao-phase-sel';phSel.style.cssText='font-size:11px;padding:3px 8px;min-width:130px';
+    const phases=[['all','Todas as fases'],['onb','Onboarding'],['impl','Implementação'],['gest','Gestão Mensal'],['esc','Escala']];
+    phases.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;phSel.appendChild(o);});
+    phSel.value=_gestaoPhaseFilter;
+    phSel.onchange=()=>{_gestaoPhaseFilter=phSel.value;renderGestaoChips();};
+    topBar.appendChild(phSel);
 
-  // Search box
-  const srch=document.createElement('input');
-  srch.className='ti';srch.placeholder='🔍 Buscar cliente...';
-  srch.style.cssText='font-size:12px;padding:5px 10px;flex:1;min-width:160px';
-  srch.value=_gestaoSearch||'';
-  srch.oninput=()=>{_gestaoSearch=srch.value;renderGestao();};
-  topBar.appendChild(srch);
+    const srch=document.createElement('input');
+    srch.className='ti gestao-search';srch.placeholder='🔍 Buscar cliente...';
+    srch.style.cssText='font-size:12px;padding:5px 10px;flex:1;min-width:160px';
+    srch.value=_gestaoSearch||'';
+    srch.oninput=()=>{_gestaoSearch=srch.value;renderGestaoChips();};
+    topBar.appendChild(srch);
 
-  chipsEl.appendChild(topBar);
+    chipsEl.appendChild(topBar);
+  } else {
+    // Update tab counts without rebuilding
+    const ta=topBar.querySelector('.gestao-tab-ativo');
+    const ti=topBar.querySelector('.gestao-tab-inativo');
+    if(ta)ta.textContent=`Ativos (${activeClients.length})`;
+    if(ti)ti.textContent=`Inativos (${inactiveClients.length})`;
+    ta?.classList.toggle('on',!gestaoShowInactive);
+    ti?.classList.toggle('on',gestaoShowInactive);
+    const ps=topBar.querySelector('.gestao-phase-sel');
+    if(ps)ps.value=_gestaoPhaseFilter;
+  }
 
-  // ── Client chips — grouped by phase if no filter ──
+  renderGestaoChips();
+}
+
+function renderGestaoChips(){
+  if(!S)return;
+  const chipsEl=document.getElementById('gestao-chips');
+  if(!chipsEl)return;
+  const activeClients=S.clients.filter(c=>c.active!==false);
+  const inactiveClients=S.clients.filter(c=>c.active===false);
+  const baseClients=gestaoShowInactive?inactiveClients:activeClients;
+  const q=(_gestaoSearch||'').toLowerCase().trim();
+  const visibleClients=baseClients.filter(c=>{
+    const matchSearch=!q||c.name.toLowerCase().includes(q)||(c.meta||'').toLowerCase().includes(q)||(c.resp||'').toLowerCase().includes(q);
+    const matchPhase=_gestaoPhaseFilter==='all'||c.phase===_gestaoPhaseFilter;
+    return matchSearch&&matchPhase;
+  });
+
+  // Remove old chiprow if exists
+  chipsEl.querySelector('.gestao-chiprow')?.remove();
+
+  // ── Client chips ──
   if(visibleClients.length===0){
     const empty=document.createElement('div');
-    empty.className='empty';empty.style.padding='12px 0';
+    empty.className='empty gestao-chiprow';empty.style.padding='12px 0';
     empty.textContent=q?'Nenhum cliente encontrado para "'+q+'"':'Nenhum cliente nesta categoria.';
     chipsEl.appendChild(empty);
   } else {
     const chipRow=document.createElement('div');
-    chipRow.className='chips';chipRow.style.marginBottom='0';
+    chipRow.className='chips gestao-chiprow';chipRow.style.marginBottom='0';
 
     visibleClients.forEach(c=>{
       const i=S.clients.indexOf(c);
