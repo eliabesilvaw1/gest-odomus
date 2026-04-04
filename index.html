@@ -3059,7 +3059,7 @@ window.avancarAvulso=(id)=>{
   if(idx<order.length-1){av.status=order[idx+1];dbW('avulsos',S.avulsos);renderAvulsos();showToast('✓ Status: '+AVULSO_STATUS_LABEL[av.status]);}
 };
 
-function renderAvulsos(){
+window.renderAvulsos=function renderAvulsos(){
   if(!S)return;
   const wrap=document.getElementById('avulsos-list');if(!wrap)return;
   const filterStatus=document.getElementById('av-filter-status')?.value||'all';
@@ -3424,7 +3424,7 @@ window.goNav=(id,btn)=>{
   document.getElementById('sec-'+id).classList.add('on');
   document.getElementById('pg-title').textContent=TITLES[id]||id;
   // Trigger section render on navigate
-  if(id==='avulsos')renderAvulsos();
+  if(id==='avulsos')setTimeout(()=>renderAvulsos(),50);
   else if(id==='financeiro')renderFinanceiro();
   else if(id==='prospeccao')renderProspeccao();
   else if(id==='colaboradores')renderColaboradores();
