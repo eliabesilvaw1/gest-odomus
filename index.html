@@ -3656,6 +3656,9 @@ window.toggleTask=(id)=>{
         }
       }
     }
+  } else {
+    // Task reopened — log to feed
+    feedLog('↩️','Tarefa reaberta',S.tasks[id]?.txt?.slice(0,60)||'');
   }
   Object.entries(writes).forEach(([p,v])=>dbW(p,v));
   renderAll();
