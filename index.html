@@ -1396,6 +1396,13 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
     </div>
     <div class="form-row"><label class="form-label">Categoria</label><select class="sel" id="cft-cat" style="width:100%"><option value="msgs">Mensagens</option><option value="traf">Tráfego</option><option value="copy">Copy/Conteúdo</option><option value="gmn">Google Meu Negócio</option><option value="ind">Indicadores</option><option value="comercial">Comercial</option><option value="financeiro">Financeiro</option><option value="estrategia">Estratégia</option><option value="outro">Outro</option></select></div>
     <div class="form-row"><label class="form-label">Responsável padrão</label><div class="resp-pills" id="cfg-resp-pills"></div></div>
+    <!-- Adicionar ao template -->
+    <div id="cfg-add-to-tpl-row" style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📋 Adicionar ao template (opcional)</div>
+      <div id="cfg-tpl-checks" style="display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:11px;color:var(--mu2)">Nenhum template criado ainda.</div>
+      </div>
+    </div>
     <div class="form-actions"><button class="ghost" onclick="closeModal('modal-cfg-task')">Cancelar</button><button class="go" onclick="saveCfgTask()">Salvar</button></div>
   </div>
 </div>
@@ -4501,8 +4508,6 @@ function renderGestaoChips(){
       <button class="cl-tab${activeGestaoTab==='tarefas'?' on':''}" onclick="switchGestaoTab('tarefas')">Tarefas (${ids.length})</button>
       <button class="cl-tab${activeGestaoTab==='instagram'?' on':''}" onclick="switchGestaoTab('instagram')">📱 Instagram</button>
       <button class="cl-tab${activeGestaoTab==='indicadores'?' on':''}" onclick="switchGestaoTab('indicadores')">📈 Indicadores</button>
-      <button class="cl-tab${activeGestaoTab==='metas'?' on':''}" onclick="switchGestaoTab('metas')">🎯 Metas</button>
-      <button class="cl-tab${activeGestaoTab==='reunioes'?' on':''}" onclick="switchGestaoTab('reunioes')">📝 Reuniões</button>
       <button class="cl-tab${activeGestaoTab==='metas'?' on':''}" onclick="switchGestaoTab('metas')">🎯 Metas</button>
       <button class="cl-tab${activeGestaoTab==='reunioes'?' on':''}" onclick="switchGestaoTab('reunioes')">📝 Reuniões</button>
       <button class="cl-tab${activeGestaoTab==='historico'?' on':''}" onclick="switchGestaoTab('historico')">Histórico (${hist.length})</button>
@@ -8020,6 +8025,23 @@ window.openCfgTaskModal=(id)=>{
   cfgTaskModalCtx=id||null;
   if(id){const t=(S.cfgTasks||[]).find(x=>x.id===id);if(!t)return;document.getElementById('cft-txt').value=t.txt||'';document.getElementById('cft-desc').value=t.desc||'';document.getElementById('cft-phase').value=t.phase||'gest';document.getElementById('cft-cat').value=t.cat||'msgs';cfgSelectedResps=[t.resp||'Duda'];document.getElementById('cfg-modal-title').textContent='Editar tarefa padrão';}
   else{document.getElementById('cft-txt').value='';document.getElementById('cft-desc').value='';document.getElementById('cft-phase').value='gest';document.getElementById('cft-cat').value='msgs';cfgSelectedResps=['Duda'];document.getElementById('cfg-modal-title').textContent='Nova tarefa padrão';}
+  // Populate template checkboxes
+  const tplChecks=document.getElementById('cfg-tpl-checks');
+  if(tplChecks){
+    const tpls=S.templates||[];
+    if(!tpls.length){tplChecks.innerHTML='<div style="font-size:11px;color:var(--mu2)">Nenhum template criado ainda.</div>';}
+    else{
+      tplChecks.innerHTML=tpls.map(tpl=>{
+        // Check if this task is already in the template
+        const alreadyIn=id&&(tpl.tarefas||[]).some(t=>t.cfgId===id);
+        return'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">'
+          +'<input type="checkbox" data-tplid="'+tpl.id+'" class="cfg-tpl-chk"'+(alreadyIn?' checked':'')+' style="accent-color:var(--bl)"/>'
+          +'<span>'+tpl.nome+(tpl.segmento?' <span style="color:var(--mu2)">('+tpl.segmento+')</span>':'')+'</span>'
+          +'<span style="font-size:10px;color:var(--mu)">'+(tpl.tarefas?.length||0)+' tarefas</span>'
+          +'</label>';
+      }).join('');
+    }
+  }
   renderRespPills('cfg-resp-pills',cfgSelectedResps,'cfg');
   // Wire days pills
   const currentDays=id?(S.cfgTasks||[]).find(x=>x.id===id)?.days||[]:[];
@@ -8047,9 +8069,27 @@ window.saveCfgTask=()=>{
   const allDays=document.querySelector('#cft-days-pills .rpill[data-day="all"]')?.classList.contains('on-t');
   const finalDays=allDays?[0,1,2,3,4,5,6]:days;
   if(!S.cfgTasks)S.cfgTasks=[];
+  let taskId=cfgTaskModalCtx;
   if(cfgTaskModalCtx){const t=S.cfgTasks.find(x=>x.id===cfgTaskModalCtx);if(t){t.txt=txt;t.desc=desc;t.phase=phase;t.cat=cat;t.resp=resp;t.days=finalDays;}}
-  else{S.cfgTasks.push({id:uid(),txt,desc,phase,cat,resp,days:finalDays});}
+  else{taskId=uid();S.cfgTasks.push({id:taskId,txt,desc,phase,cat,resp,days:finalDays});}
+  // Apply template assignments
+  const checks=document.querySelectorAll('#cfg-tpl-checks .cfg-tpl-chk');
+  checks.forEach(chk=>{
+    const tplId=chk.dataset.tplid;
+    const tpl=(S.templates||[]).find(t=>t.id===tplId);if(!tpl)return;
+    if(!tpl.tarefas)tpl.tarefas=[];
+    const alreadyIn=tpl.tarefas.some(t=>t.cfgId===taskId||t.txt===txt);
+    if(chk.checked&&!alreadyIn){
+      // Add task to template
+      tpl.tarefas.push({id:uid(),cfgId:taskId,txt,fase:phase,cat,resp,diasAposInicio:0,urgente:false,desc});
+    } else if(!chk.checked&&alreadyIn){
+      // Remove task from template
+      tpl.tarefas=tpl.tarefas.filter(t=>t.cfgId!==taskId&&t.txt!==txt);
+    }
+  });
+  if(checks.length>0)dbW('templates',S.templates);
   dbW('cfgTasks',S.cfgTasks);closeModal('modal-cfg-task');renderConfig();
+  showToast('✓ Tarefa salva'+(checks.length>0?' — templates atualizados':''));
 };
 window.delCfgTask=(id)=>{if(!confirm('Remover esta tarefa padrão?'))return;S.cfgTasks=(S.cfgTasks||[]).filter(t=>t.id!==id);dbW('cfgTasks',S.cfgTasks);renderConfig();};
 
