@@ -1006,6 +1006,18 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
   </div>
 </div>
 
+<!-- MODAL: Detalhe da Despesa -->
+<div class="modal-bg" id="modal-desp-detail">
+  <div class="modal" style="width:460px">
+    <div class="modal-hd">
+      <div class="modal-title" id="desp-detail-title">Detalhes da despesa</div>
+      <button class="modal-close" onclick="closeModal('modal-desp-detail')">×</button>
+    </div>
+    <div id="desp-detail-body"></div>
+    <div class="form-actions" id="desp-detail-actions"></div>
+  </div>
+</div>
+
 <!-- MODAL: Nova Venda Avulsa -->
 <div class="modal-bg" id="modal-avulso">
   <div class="modal" style="width:560px;max-height:92vh;overflow-y:auto">
@@ -3111,6 +3123,72 @@ function renderAvulsos(){
       +'</div>';
   }).join('');
 }
+
+window.closeDespDt=()=>closeModal('modal-desp-detail');
+window.openDespDetail=(i)=>{
+  const d=(S.despesas||[])[i];if(!d)return;
+  const catMap={energia:'Energia',internet:'Internet',ferramentas:'Ferramentas / Software',canva:'Canva',freelancer:'Freelancer',edicao:'Edição de Vídeo',designer:'Designer',suprimentos:'Suprimentos',marketing:'Marketing',pessoal:'Pessoal / RH',outro:'Outro'};
+  const formaMap={pix:'Pix',cartao:'Cartão',transferencia:'Transferência',cartao_credito:'Cartão de crédito',pix_parcelado:'Pix parcelado',boleto:'Boleto'};
+  document.getElementById('desp-detail-title').textContent=d.desc;
+  const isPago=d.status==='ok';
+  const body=document.getElementById('desp-detail-body');
+  const actions=document.getElementById('desp-detail-actions');
+
+  body.innerHTML='<div style="font-size:28px;font-weight:700;font-family:DM Mono,monospace;color:var(--am);margin-bottom:16px">'+fmt(parseFloat(d.val)||0)+'</div>'
+    +'<div style="background:var(--sf2);border-radius:var(--r);padding:14px;margin-bottom:12px;font-size:12px">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    +[['Categoria',catMap[d.cat]||d.cat],
+      ['Mês',d.mes?new Date(d.mes+'-01').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'—'],
+      ['Status',isPago?'✓ Pago':'⏳ Pendente'],
+      ['Data pagamento',d.dataPag?new Date(d.dataPag+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit'}):'—'],
+      ['Pago por',d.pagoPor||'—'],
+      ['Recorrente',d.recorrente?'Sim — mensal':'Não'],
+    ].map(([l,v])=>'<div><div style="font-size:10px;color:var(--mu);margin-bottom:2px">'+l+'</div><div style="color:var(--tx)">'+v+'</div></div>').join('')
+    +'</div>'
+    +(d.detalhe?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)"><div style="font-size:10px;color:var(--mu);margin-bottom:2px">Detalhes internos</div><div style="color:var(--tx)">'+d.detalhe+'</div></div>':'')
+    +(d.parcelado?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);background:var(--bl-bg);border-radius:var(--rs);padding:8px"><div style="font-size:11px;color:var(--bl);font-weight:500">💳 Parcela '+d.parcLabel+' de '+d.nParc+'x</div>'+(d.cartao?'<div style="font-size:11px;color:var(--mu);margin-top:2px">Cartão: '+d.cartao+'</div>':'')+'<div style="font-size:11px;color:var(--mu);margin-top:2px">Total: '+fmt(parseFloat(d.valTotal||d.val)*d.nParc)+'</div></div>':'')
+    +'</div>'
+
+    // Caixa Domus section
+    +'<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px;margin-bottom:4px">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--mu);margin-bottom:8px">💼 Origem do pagamento</div>'
+    +'<div style="display:flex;flex-direction:column;gap:6px">'
+    +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="radio" name="desp-origem" value="caixa" '+(d.caixoOrigen==='caixa'?'checked':'')+' onchange="setDespOrigem('+i+',this.value)"/> 💼 Retirado do caixa Domus</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="radio" name="desp-origem" value="conta" '+(d.caixoOrigen==='conta'?'checked':'')+' onchange="setDespOrigem('+i+',this.value)"/> 🏦 Conta bancária da empresa</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="radio" name="desp-origem" value="socio" '+(d.caixoOrigen==='socio'?'checked':'')+' onchange="setDespOrigem('+i+',this.value)"/> 👤 Pago por sócio (reembolso)</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="radio" name="desp-origem" value="" '+(!(d.caixoOrigen)?'checked':'')+' onchange="setDespOrigem('+i+',this.value)"/> — Não informado</label>'
+    +'</div>'
+    +(d.caixoOrigen==='socio'?'<input class="ti" id="desp-reemb-quem" style="width:100%;margin-top:8px;font-size:12px" placeholder="Nome do sócio para reembolso..." value="'+(d.reembQuem||'')+'"/>':'')
+    +'</div>';
+
+  actions.innerHTML='<button class="ghost" onclick="closeDespDt()">Fechar</button>'
+    +(isPago
+      ?'<button class="ghost" style="color:var(--am)" data-i="'+i+'" onclick="reabrirDesp(this.dataset.i);closeDespDt()">↩ Reabrir</button>'
+      :'<button class="go" data-i="'+i+'" onclick="pagarDesp(this.dataset.i);closeDespDt()">✓ Marcar como paga</button>')
+    +'<button class="ghost" style="color:var(--rd)" data-i="'+i+'" onclick="delDesp(this.dataset.i);closeDespDt()">🗑 Remover</button>';
+
+  closeFinPanel();
+  openModal('modal-desp-detail');
+};
+
+window.setDespOrigem=(i,val)=>{
+  const d=(S.despesas||[])[i];if(!d)return;
+  d.caixoOrigen=val;
+  if(val==='caixa'){
+    // Deduct from caixa — log it
+    d.caixoDesc='Debitado do caixa Domus em '+new Date().toLocaleDateString('pt-BR');
+  }
+  dbW('despesas',S.despesas);
+  renderFinanceiro();
+  showToast('✓ Origem registrada');
+};
+
+window.reabrirDesp=(i)=>{
+  const d=(S.despesas||[])[i];if(!d)return;
+  d.status='pend';d.dataPag='';
+  dbW('despesas',S.despesas);renderFinanceiro();
+  showToast('Despesa reaberta como pendente');
+};
 
 window.forceMonthlyRecurrence=()=>{
   showConfirm({icon:'🔄',title:'Forçar recorrência mensal?',
@@ -5555,17 +5633,56 @@ window.openFinPanel=(type)=>{
   }
 
   else if(type==='despesas'){
-    html=`<div style="font-size:24px;font-weight:600;font-family:'DM Mono',monospace;color:var(--am);margin-bottom:16px">${fmt(despOperac)}</div>`;
     const pagas=desp.filter(d=>d.status==='ok');
     const pendentes=desp.filter(d=>d.status!=='ok');
-    if(pagas.length){html+=`<div class="sl">Pagas</div>`;html+=pagas.map(d=>`<div class="cl-break-row"><div class="cl-break-name">${d.desc}</div><div class="cl-break-val" style="color:var(--am)">${fmt(d.val)}</div><span style="font-size:10px;color:var(--gn)">✓</span></div>`).join('');}
-    if(pendentes.length){html+=`<div class="sl" style="margin-top:10px">Pendentes</div>`;html+=pendentes.map(d=>`<div class="cl-break-row"><div class="cl-break-name">${d.desc}</div><div class="cl-break-val" style="color:var(--am)">${fmt(d.val)}</div><button onclick="pagarDesp(${(S.despesas||[]).indexOf(d)});closeFinPanel()" class="pay-btn pay-btn-pend" style="font-size:10px;padding:2px 8px">Pagar</button></div>`).join('');}
+    const totPago=pagas.reduce((a,d)=>a+(parseFloat(d.val)||0),0);
+    const totPend=pendentes.reduce((a,d)=>a+(parseFloat(d.val)||0),0);
+    const catMap={energia:'Energia',internet:'Internet',ferramentas:'Ferramentas',canva:'Canva',freelancer:'Freelancer',edicao:'Edição Vídeo',designer:'Designer',suprimentos:'Suprimentos',marketing:'Marketing',pessoal:'Pessoal',outro:'Outro'};
+    html='<div style="font-size:24px;font-weight:600;font-family:DM Mono,monospace;color:var(--am);margin-bottom:4px">'+fmt(despOperac)+'</div>';
+    html+='<div style="display:flex;gap:10px;margin-bottom:16px;font-size:11px">'
+      +'<span style="color:var(--gn)">✓ '+fmt(totPago)+' pago</span>'
+      +'<span style="color:var(--am)">⏳ '+fmt(totPend)+' pendente</span>'
+      +'</div>';
+    const renderDespRow=(d)=>{
+      const i=(S.despesas||[]).indexOf(d);
+      const isPago=d.status==='ok';
+      return'<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px;cursor:pointer" onclick="openDespDetail('+i+')">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
+        +'<div style="font-size:13px;font-weight:500">'+d.desc+'</div>'
+        +'<div style="font-size:14px;font-weight:600;color:var(--am);font-family:DM Mono,monospace">'+fmt(d.val)+'</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+        +'<span style="font-size:10px;color:var(--mu)">'+( catMap[d.cat]||d.cat)+'</span>'
+        +(d.detalhe?'<span style="font-size:10px;color:var(--mu2)">· '+d.detalhe+'</span>':'')
+        +(d.parcelado?'<span style="font-size:10px;color:var(--bl)">'+d.parcLabel+'</span>':'')
+        +(d.recorrente?'<span style="font-size:10px;color:var(--mu);background:var(--sf3);padding:1px 5px;border-radius:4px">mensal</span>':'')
+        +(d.caixoOrigen?'<span style="font-size:10px;color:var(--am);background:var(--am-bg);padding:1px 5px;border-radius:4px">💼 caixa Domus</span>':'')
+        +'</div>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">'
+        +'<span style="font-size:10px;color:'+(isPago?'var(--gn)':'var(--am)')+'">'+(isPago?'✓ Pago '+(d.dataPag?new Date(d.dataPag+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}):''):'⏳ Pendente')+'</span>'
+        +(isPago?''
+          :'<button data-i="'+i+'" onclick="event.stopPropagation();pagarDesp(this.dataset.i);closeFinPanel()" class="pay-btn pay-btn-pend" style="font-size:10px;padding:2px 8px">Pagar</button>')
+        +'</div>'
+        +'</div>';
+    };
+    if(pagas.length){html+='<div class="sl" style="margin-bottom:6px">Pagas ('+pagas.length+')</div>';html+=pagas.map(renderDespRow).join('');}
+    if(pendentes.length){html+='<div class="sl" style="margin-top:10px;margin-bottom:6px">Pendentes ('+pendentes.length+')</div>';html+=pendentes.map(renderDespRow).join('');}
     if(!desp.length)html+='<div class="empty">Nenhuma despesa neste mês.</div>';
   }
 
   else if(type==='lucroLiquido'){
     const {caixaReserva,valorADividir,valorPorSocio,nSocios}=fd;
+    // Calculate caixa deductions (despesas paid from caixa)
+    const caixaDespesas=(S.despesas||[]).filter(d=>d.mes===mes&&d.caixoOrigen==='caixa').reduce((a,d)=>a+(parseFloat(d.val)||0),0);
+    const caixaSaldo=caixaReserva-caixaDespesas;
     html=`<div style="font-size:24px;font-weight:600;font-family:'DM Mono',monospace;color:var(--pu);margin-bottom:16px">${fmt(valorADividir)}</div>`;
+    // Caixa status
+    html+=`<div style="background:var(--am-bg);border:1px solid var(--am-bd);border-radius:var(--rs);padding:12px;margin-bottom:12px;font-size:12px">
+      <div style="font-weight:600;color:var(--am);margin-bottom:6px">💼 Caixa Domus (10%)</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>Reservado este mês</span><b style="font-family:DM Mono,monospace">${fmt(caixaReserva)}</b></div>
+      ${caixaDespesas>0?`<div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>(-) Despesas do caixa</span><b style="color:var(--rd);font-family:DM Mono,monospace">- ${fmt(caixaDespesas)}</b></div>`:''}
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--am-bd);padding-top:6px;margin-top:4px"><span style="font-weight:600">Saldo do caixa</span><b style="color:${caixaSaldo>=0?'var(--gn)':'var(--rd)'};font-family:DM Mono,monospace;font-size:14px">${fmt(caixaSaldo)}</b></div>
+    </div>`;
     html+=`<div style="background:var(--sf2);border-radius:var(--rs);padding:14px;margin-bottom:16px;font-size:12px;line-height:2.2;color:var(--mu)">
       <div style="display:flex;justify-content:space-between"><span>Faturamento recebido</span><b style="color:var(--gn);font-family:'DM Mono',monospace">${fmt(faturamento)}</b></div>
       <div style="display:flex;justify-content:space-between"><span>− Custos dos serviços</span><b style="color:var(--rd);font-family:'DM Mono',monospace">− ${fmt(custosClientes)}</b></div>
