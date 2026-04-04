@@ -565,6 +565,10 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 5.5l3 2-3 2V5.5z" fill="currentColor"/><path d="M4 13h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       Produção de Conteúdo
     </button>
+    <button class="nav-btn" data-nav="avulsos" onclick="goNav('avulsos',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="13" cy="11" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M13 10v1h1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Vendas Avulsas
+    </button>
     <button class="nav-btn" data-nav="config" onclick="goNav('config',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M2.93 2.93l1.41 1.41M11.66 11.66l1.41 1.41M2.93 13.07l1.41-1.41M11.66 4.34l1.41-1.41" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Config. Tarefas
@@ -823,6 +827,36 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
       </div>
     </div>
 
+    <!-- VENDAS AVULSAS -->
+    <div class="sec" id="sec-avulsos">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div class="pg-title">Vendas Avulsas</div>
+          <div class="pg-sub" style="margin-bottom:0">Serviços pontuais sem contrato mensal. Integrado com tarefas, calendário e financeiro.</div>
+        </div>
+        <button class="c-btn" onclick="openAvulsoModal()">+ Nova venda avulsa</button>
+      </div>
+      <!-- Métricas -->
+      <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px">
+        <div class="metric g"><div class="m-label">Vendas no mês</div><div class="m-val" id="av-count">—</div><div class="m-sub">serviços avulsos</div></div>
+        <div class="metric b"><div class="m-label">Receita avulsa</div><div class="m-val" id="av-receita">—</div><div class="m-sub">mês atual</div></div>
+        <div class="metric a"><div class="m-label">Em execução</div><div class="m-val" id="av-exec">—</div><div class="m-sub">tarefas abertas</div></div>
+        <div class="metric" style="background:var(--sf);border:1px solid var(--bd)"><div class="m-label" style="color:var(--mu)">Clientes avulsos</div><div class="m-val" id="av-clientes" style="color:var(--pu)">—</div><div class="m-sub" style="color:var(--mu2)">cadastrados</div></div>
+      </div>
+      <!-- Filtros -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+        <select class="sel" id="av-filter-status" style="font-size:11px;padding:4px 8px" onchange="renderAvulsos()">
+          <option value="all">Todos os status</option>
+          <option value="aberto">Em aberto</option>
+          <option value="execucao">Em execução</option>
+          <option value="concluido">Concluído</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <input class="ti" id="av-search" placeholder="🔍 Buscar cliente ou serviço..." style="font-size:12px;padding:5px 10px;flex:1;min-width:180px" oninput="renderAvulsos()"/>
+      </div>
+      <div id="avulsos-list"></div>
+    </div>
+
     <!-- COLABORADORES -->
     <div class="sec" id="sec-colaboradores">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -969,6 +1003,111 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
     </div>
     <div class="form-row"><label class="form-label">Observação / próximo passo</label><textarea class="ta" id="ort-obs" placeholder="Próximo passo, interesse, contato..." style="min-height:60px"></textarea></div>
     <div class="form-actions"><button class="ghost" onclick="closeModal('modal-oportunidade')">Cancelar</button><button class="go" onclick="saveOportunidade()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Nova Venda Avulsa -->
+<div class="modal-bg" id="modal-avulso">
+  <div class="modal" style="width:560px;max-height:92vh;overflow-y:auto">
+    <div class="modal-hd">
+      <div class="modal-title" id="avulso-modal-title">Nova venda avulsa</div>
+      <button class="modal-close" onclick="closeModal('modal-avulso')">×</button>
+    </div>
+
+    <!-- Cliente -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">👤 Cliente</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button type="button" class="st-btn on" id="av-cli-tipo-novo" onclick="setAvCliTipo('novo')">Novo cliente avulso</button>
+        <button type="button" class="st-btn" id="av-cli-tipo-exist" onclick="setAvCliTipo('existente')">Cliente já cadastrado</button>
+      </div>
+      <div id="av-cli-novo-fields">
+        <div class="grid2" style="gap:8px">
+          <div><label class="form-label">Nome</label><input class="ti" id="av-cli-nome" style="width:100%" placeholder="Nome do cliente"/></div>
+          <div><label class="form-label">Telefone / WhatsApp</label><input class="ti" id="av-cli-tel" style="width:100%" placeholder="(69) 99999-9999"/></div>
+        </div>
+        <div class="grid2" style="gap:8px;margin-top:8px">
+          <div><label class="form-label">E-mail (opcional)</label><input class="ti" id="av-cli-email" style="width:100%" placeholder="email@..."/></div>
+          <div><label class="form-label">Segmento</label><input class="ti" id="av-cli-seg" style="width:100%" placeholder="Ex: Estética, Médico..."/></div>
+        </div>
+      </div>
+      <div id="av-cli-exist-fields" style="display:none">
+        <label class="form-label">Selecionar cliente</label>
+        <select class="sel" id="av-cli-sel" style="width:100%"></select>
+      </div>
+    </div>
+
+    <!-- Serviço -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">🛠 Serviço</div>
+      <div class="form-row"><label class="form-label">Tipo de serviço</label>
+        <select class="sel" id="av-servico" style="width:100%" onchange="updateAvServicoHint()">
+          <option value="linkbio">Página Link na Bio</option>
+          <option value="video_avulso">Vídeo avulso</option>
+          <option value="trafego_avulso">Tráfego pago (1 mês)</option>
+          <option value="gmn_avulso">Google Meu Negócio</option>
+          <option value="identidade">Identidade visual</option>
+          <option value="social_media">Social media (1 mês)</option>
+          <option value="consultoria">Consultoria</option>
+          <option value="copy">Copy / Roteiro</option>
+          <option value="site">Site / Landing page</option>
+          <option value="outro">Outro serviço</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Descrição detalhada</label>
+        <textarea class="ta" id="av-desc" style="min-height:60px;width:100%" placeholder="Descreva o que será entregue, especificações, prazo..."></textarea>
+      </div>
+    </div>
+
+    <!-- Financeiro -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">💰 Pagamento</div>
+      <div class="grid2" style="gap:8px;margin-bottom:8px">
+        <div><label class="form-label">Valor (R$)</label><input class="ti" id="av-valor" type="number" style="width:100%" placeholder="Ex: 850" oninput="calcAvParcela()"/></div>
+        <div><label class="form-label">Forma de recebimento</label>
+          <select class="sel" id="av-forma" style="width:100%" onchange="toggleAvParcela()">
+            <option value="pix">Pix (à vista)</option>
+            <option value="transferencia">Transferência (à vista)</option>
+            <option value="cartao_credito">Cartão de crédito</option>
+            <option value="pix_parcelado">Pix parcelado</option>
+            <option value="boleto">Boleto</option>
+          </select>
+        </div>
+      </div>
+      <!-- Parcelamento -->
+      <div id="av-parcela-block" style="display:none">
+        <div class="grid2" style="gap:8px;margin-bottom:6px">
+          <div><label class="form-label">Nº de parcelas</label>
+            <select class="sel" id="av-nparc" style="width:100%" onchange="calcAvParcela()">
+              <option value="2">2x</option><option value="3">3x</option><option value="4">4x</option>
+              <option value="5">5x</option><option value="6">6x</option><option value="10">10x</option><option value="12">12x</option>
+            </select>
+          </div>
+          <div><label class="form-label">Cartão / conta</label><input class="ti" id="av-cartao" style="width:100%" placeholder="Ex: Nubank Eliabe"/></div>
+        </div>
+        <div id="av-parcela-preview" style="font-size:11px;color:var(--bl);background:var(--bl-bg);border:1px solid var(--bl-bd);border-radius:var(--rs);padding:6px 10px"></div>
+      </div>
+      <div class="grid2" style="gap:8px;margin-top:8px">
+        <div><label class="form-label">Status do pagamento</label>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <button type="button" class="st-btn on" id="av-st-pend" onclick="setAvStatus('pend')">⏳ Pendente</button>
+            <button type="button" class="st-btn" id="av-st-ok" onclick="setAvStatus('ok')">✓ Recebido</button>
+          </div>
+        </div>
+        <div><label class="form-label">Data de recebimento</label><input class="ti" type="date" id="av-data-pag" style="width:100%"/></div>
+      </div>
+    </div>
+
+    <!-- Prazo e responsável -->
+    <div class="grid2" style="gap:10px;margin-bottom:12px">
+      <div><label class="form-label">Prazo de entrega</label><input class="ti" type="date" id="av-prazo" style="width:100%"/></div>
+      <div><label class="form-label">Responsável</label><select class="sel" id="av-resp" style="width:100%"></select></div>
+    </div>
+
+    <div class="form-actions">
+      <button class="ghost" onclick="closeModal('modal-avulso')">Cancelar</button>
+      <button class="go" onclick="saveAvulso()">Criar venda avulsa</button>
+    </div>
   </div>
 </div>
 
@@ -1725,6 +1864,7 @@ const DEF={
   impostos:[], // impostos e provisões
   oportunidades:[], // oportunidades de prospecção
   metaFin:{}, // {val: number} meta mensal
+  avulsos:[], // vendas avulsas [{id,cliente,servico,valor,status,tarefas[],pagamento{}}]
   videos:[],
   socios:[
     {id:'soc1',name:'Alonso',perc:33.33,color:'var(--bl-bg)',tc:'var(--bl)'},
@@ -1890,7 +2030,7 @@ function fixS(s){
   });
   // Fix top-level arrays
   if(!s.despesas)s.despesas=[];
-  ['fin','finTasks','funil','prospTasks','procTasks','despesas','socios','videos','templates','internalTasks','prolabore','impostos','oportunidades'].forEach(k=>{
+  ['fin','finTasks','funil','prospTasks','procTasks','despesas','socios','videos','templates','internalTasks','prolabore','impostos','oportunidades','avulsos'].forEach(k=>{
     if(!s[k])s[k]=DEF[k]||[];
     else s[k]=fbArr(s[k]);
   });
@@ -2715,6 +2855,263 @@ window.delOportunidade=(id)=>{
   }});
 };
 
+// ── VENDAS AVULSAS ──
+let _avCtx=null;
+let _avStatus='pend';
+let _avCliTipo='novo';
+
+const AVULSO_SERVICO_LABEL={
+  linkbio:'Link na Bio',video_avulso:'Vídeo avulso',trafego_avulso:'Tráfego (1 mês)',
+  gmn_avulso:'Google Meu Negócio',identidade:'Identidade visual',social_media:'Social media',
+  consultoria:'Consultoria',copy:'Copy/Roteiro',site:'Site/Landing page',outro:'Outro'
+};
+const AVULSO_STATUS_LABEL={aberto:'Aberto',execucao:'Em execução',concluido:'Concluído',cancelado:'Cancelado'};
+const AVULSO_STATUS_COR={aberto:'var(--bl)',execucao:'var(--am)',concluido:'var(--gn)',cancelado:'var(--mu)'};
+
+window.setAvCliTipo=(tipo)=>{
+  _avCliTipo=tipo;
+  document.getElementById('av-cli-novo-fields').style.display=tipo==='novo'?'block':'none';
+  document.getElementById('av-cli-exist-fields').style.display=tipo==='existente'?'block':'none';
+  document.getElementById('av-cli-tipo-novo').className='st-btn'+(tipo==='novo'?' on':'');
+  document.getElementById('av-cli-tipo-exist').className='st-btn'+(tipo==='existente'?' on':'');
+};
+
+window.setAvStatus=(st)=>{
+  _avStatus=st;
+  document.getElementById('av-st-pend').className='st-btn'+(st==='pend'?' on':'');
+  document.getElementById('av-st-ok').className='st-btn'+(st==='ok'?' on':'');
+};
+
+window.toggleAvParcela=()=>{
+  const forma=document.getElementById('av-forma').value;
+  const isParc=forma==='cartao_credito'||forma==='pix_parcelado';
+  document.getElementById('av-parcela-block').style.display=isParc?'block':'none';
+  if(isParc)calcAvParcela();
+};
+
+window.calcAvParcela=()=>{
+  const val=parseFloat(document.getElementById('av-valor').value)||0;
+  const n=parseInt(document.getElementById('av-nparc')?.value)||2;
+  const prev=document.getElementById('av-parcela-preview');
+  if(!prev||!val)return;
+  prev.textContent=n+'x de R$ '+(val/n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' — Total: R$ '+val.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+};
+
+window.openAvulsoModal=(id)=>{
+  _avCtx=id||null;
+  _avStatus='pend';_avCliTipo='novo';
+  document.getElementById('avulso-modal-title').textContent=id?'Editar venda avulsa':'Nova venda avulsa';
+  // Populate selects
+  const respSel=document.getElementById('av-resp');
+  if(respSel)respSel.innerHTML=(S.colaboradores||[]).map(c=>'<option value="'+c.tag+'">'+c.tag+' — '+c.name+'</option>').join('');
+  const cliSel=document.getElementById('av-cli-sel');
+  if(cliSel)cliSel.innerHTML=(S.clients||[]).filter(c=>c.active!==false).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');
+  // Reset fields
+  if(!id){
+    ['av-cli-nome','av-cli-tel','av-cli-email','av-cli-seg','av-desc','av-valor','av-cartao'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    document.getElementById('av-prazo').value='';
+    document.getElementById('av-data-pag').value='';
+    document.getElementById('av-parcela-block').style.display='none';
+    setAvCliTipo('novo');setAvStatus('pend');
+  } else {
+    const av=(S.avulsos||[]).find(x=>x.id===id);
+    if(av){
+      if(av.clienteExistId){setAvCliTipo('existente');document.getElementById('av-cli-sel').value=av.clienteExistId;}
+      else{setAvCliTipo('novo');document.getElementById('av-cli-nome').value=av.clienteNome||'';document.getElementById('av-cli-tel').value=av.clienteTel||'';document.getElementById('av-cli-email').value=av.clienteEmail||'';document.getElementById('av-cli-seg').value=av.clienteSeg||'';}
+      document.getElementById('av-servico').value=av.servico||'outro';
+      document.getElementById('av-desc').value=av.desc||'';
+      document.getElementById('av-valor').value=av.valor||'';
+      document.getElementById('av-forma').value=av.forma||'pix';
+      document.getElementById('av-prazo').value=av.prazo||'';
+      document.getElementById('av-data-pag').value=av.dataPag||'';
+      if(av.resp&&respSel)respSel.value=av.resp;
+      setAvStatus(av.pagStatus||'pend');
+      toggleAvParcela();
+    }
+  }
+  openModal('modal-avulso');
+};
+
+window.saveAvulso=()=>{
+  const servico=document.getElementById('av-servico').value;
+  const desc=document.getElementById('av-desc').value.trim();
+  const valor=parseFloat(document.getElementById('av-valor').value)||0;
+  const forma=document.getElementById('av-forma').value;
+  const prazo=document.getElementById('av-prazo').value;
+  const resp=document.getElementById('av-resp').value;
+  const dataPag=document.getElementById('av-data-pag').value;
+  const cartao=document.getElementById('av-cartao')?.value.trim()||'';
+  const nParc=parseInt(document.getElementById('av-nparc')?.value)||1;
+  const isParc=forma==='cartao_credito'||forma==='pix_parcelado';
+
+  // Client info
+  let clienteNome='',clienteTel='',clienteEmail='',clienteSeg='',clienteExistId='';
+  if(_avCliTipo==='novo'){
+    clienteNome=document.getElementById('av-cli-nome').value.trim();
+    clienteTel=document.getElementById('av-cli-tel').value.trim();
+    clienteEmail=document.getElementById('av-cli-email').value.trim();
+    clienteSeg=document.getElementById('av-cli-seg').value.trim();
+    if(!clienteNome){showToast('Informe o nome do cliente');return;}
+  } else {
+    clienteExistId=document.getElementById('av-cli-sel').value;
+    const c=(S.clients||[]).find(x=>x.id===clienteExistId);
+    clienteNome=c?.name||'';
+  }
+  if(!valor){showToast('Informe o valor');return;}
+
+  const mes=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+  if(!S.avulsos)S.avulsos=[];
+
+  const avId=_avCtx||uid();
+  const av={
+    id:avId,clienteNome,clienteTel,clienteEmail,clienteSeg,clienteExistId,
+    servico,desc,valor,forma,prazo,resp,dataPag,cartao,
+    pagStatus:_avStatus,mes,
+    status:'aberto',
+    parcelado:isParc,nParc:isParc?nParc:1,
+    criadoEm:Date.now(),taskIds:[]
+  };
+
+  // Create tasks
+  if(!S.tasks)S.tasks={};
+  const taskId=uid();
+  const servicoLabel=AVULSO_SERVICO_LABEL[servico]||servico;
+  S.tasks[taskId]={id:taskId,txt:'[Avulso] '+clienteNome+' — '+servicoLabel+(prazo?' · Entrega: '+new Date(prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}):''),r:resp,done:false,urgent:false,note:desc,prazo};
+  av.taskIds=[taskId];
+
+  // Add to fin if already received
+  if(_avStatus==='ok'&&valor>0){
+    if(!S.fin)S.fin=[];
+    // Check not duplicate
+    if(!S.fin.some(f=>f.avulsoId===avId)){
+      S.fin.push({id:uid(),avulsoId:avId,client:clienteNome,val:valor,venc:'',forma,status:'ok',dataPag:dataPag||new Date().toISOString().split('T')[0],mes,servico:servicoLabel,parcInfo:isParc?nParc+'x':'',cartao});
+    }
+  } else if(valor>0){
+    if(!S.fin)S.fin=[];
+    if(!S.fin.some(f=>f.avulsoId===avId)){
+      S.fin.push({id:uid(),avulsoId:avId,client:clienteNome,val:valor,venc:'',forma,status:'pending',dataPag:'',mes,servico:servicoLabel,parcInfo:isParc?nParc+'x':'',cartao});
+    }
+  }
+
+  if(_avCtx){
+    const idx=(S.avulsos||[]).findIndex(x=>x.id===avId);
+    if(idx>=0)S.avulsos[idx]=av;else S.avulsos.push(av);
+  } else {
+    S.avulsos.push(av);
+  }
+
+  dbWMulti({avulsos:S.avulsos,tasks:S.tasks,fin:S.fin,clients:S.clients});
+  closeModal('modal-avulso');
+  renderAvulsos();
+  renderFinanceiro();
+  auditLog('venda_avulsa_criada',clienteNome+' · '+servicoLabel+' · R$ '+valor);
+  showToast('✓ Venda avulsa criada — tarefa gerada no calendário');
+};
+
+window.updateAvServicoHint=()=>{};
+
+window.delAvulso=(id)=>{
+  const av=(S.avulsos||[]).find(x=>x.id===id);
+  showConfirm({icon:'🗑️',title:'Remover venda avulsa?',msg:'<b>'+(av?.clienteNome||'')+'</b> — '+(AVULSO_SERVICO_LABEL[av?.servico]||'')+'<br>Tarefas e lançamentos financeiros vinculados também serão removidos.',okLabel:'Remover',okClass:'danger',onOk:()=>{
+    // Remove tasks
+    (av?.taskIds||[]).forEach(tid=>delete S.tasks[tid]);
+    // Remove fin entry
+    S.fin=(S.fin||[]).filter(f=>f.avulsoId!==id);
+    S.avulsos=(S.avulsos||[]).filter(x=>x.id!==id);
+    dbWMulti({avulsos:S.avulsos,tasks:S.tasks,fin:S.fin});
+    renderAvulsos();renderFinanceiro();
+    showToast('Venda avulsa removida');
+  }});
+};
+
+window.converterAvulsoEmCliente=(id)=>{
+  const av=(S.avulsos||[]).find(x=>x.id===id);if(!av)return;
+  showConfirm({icon:'🔄',title:'Converter em cliente mensal?',
+    msg:'<b>'+av.clienteNome+'</b> será cadastrado como cliente ativo na Gestão de Clientes. A venda avulsa será mantida no histórico.',
+    okLabel:'Converter',okClass:'safe',
+    onOk:()=>{
+      if(!S.clients)S.clients=[];
+      S.clients.push({id:uid(),name:av.clienteNome,phase:'onb',resp:av.resp||'Todos',meta:'',semMsg:false,taskIds:[],history:[{id:uid(),type:'note',txt:'Convertido de venda avulsa: '+(AVULSO_SERVICO_LABEL[av.servico]||av.servico),who:av.resp,ts:Date.now()}],cnpj:'',email:av.clienteEmail||'',telefone:av.clienteTel||'',inicio:new Date().toISOString().split('T')[0],canal:'',obs:'Convertido de cliente avulso. Segmento: '+(av.clienteSeg||''),active:true,valor:''});
+      av.convertido=true;
+      dbWMulti({clients:S.clients,avulsos:S.avulsos});
+      renderAll();
+      showToast('✓ '+av.clienteNome+' adicionado como cliente mensal');
+    }
+  });
+};
+
+window.avancarAvulso=(id)=>{
+  const av=(S.avulsos||[]).find(x=>x.id===id);if(!av)return;
+  const order=['aberto','execucao','concluido'];
+  const idx=order.indexOf(av.status);
+  if(idx<order.length-1){av.status=order[idx+1];dbW('avulsos',S.avulsos);renderAvulsos();showToast('✓ Status: '+AVULSO_STATUS_LABEL[av.status]);}
+};
+
+function renderAvulsos(){
+  if(!S)return;
+  const wrap=document.getElementById('avulsos-list');if(!wrap)return;
+  const filterStatus=document.getElementById('av-filter-status')?.value||'all';
+  const q=(document.getElementById('av-search')?.value||'').toLowerCase();
+  const avulsos=S.avulsos||[];
+
+  // Metrics
+  const mes=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+  const doMes=avulsos.filter(a=>a.mes===mes);
+  const receitaMes=doMes.reduce((sum,a)=>sum+(parseFloat(a.valor)||0),0);
+  const emExec=avulsos.filter(a=>a.status==='execucao').length;
+  const clientesUniq=new Set(avulsos.map(a=>a.clienteNome)).size;
+  const elC=document.getElementById('av-count');if(elC)elC.textContent=doMes.length;
+  const elR=document.getElementById('av-receita');if(elR)elR.textContent='R$ '+receitaMes.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+  const elE=document.getElementById('av-exec');if(elE)elE.textContent=emExec;
+  const elCl=document.getElementById('av-clientes');if(elCl)elCl.textContent=clientesUniq;
+
+  const filtered=avulsos.filter(a=>{
+    if(filterStatus!=='all'&&a.status!==filterStatus)return false;
+    if(q&&!a.clienteNome.toLowerCase().includes(q)&&!(AVULSO_SERVICO_LABEL[a.servico]||'').toLowerCase().includes(q))return false;
+    return true;
+  }).sort((a,b)=>b.criadoEm-a.criadoEm);
+
+  if(!filtered.length){wrap.innerHTML='<div class="empty" style="padding:30px">Nenhuma venda avulsa encontrada.</div>';return;}
+
+  wrap.innerHTML=filtered.map(av=>{
+    const servicoLabel=AVULSO_SERVICO_LABEL[av.servico]||av.servico;
+    const statusCor=AVULSO_STATUS_COR[av.status]||'var(--mu)';
+    const statusLabel=AVULSO_STATUS_LABEL[av.status]||av.status;
+    const prazoStr=av.prazo?new Date(av.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}):'';
+    const hoje=new Date().toISOString().split('T')[0];
+    const atrasado=av.prazo&&av.prazo<hoje&&av.status!=='concluido';
+    return'<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">'
+      +'<div style="flex:1;min-width:200px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+      +'<span style="font-size:14px;font-weight:600">'+av.clienteNome+'</span>'
+      +'<span style="font-size:11px;background:var(--sf2);padding:2px 8px;border-radius:6px;color:var(--mu)">'+servicoLabel+'</span>'
+      +(av.convertido?'<span style="font-size:10px;color:var(--gn);background:var(--gn-bg);padding:1px 6px;border-radius:6px">↗ mensal</span>':'')
+      +'</div>'
+      +(av.desc?'<div style="font-size:12px;color:var(--mu2);margin-bottom:4px">'+av.desc.slice(0,80)+(av.desc.length>80?'...':'')+'</div>':'')
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+      +'<span style="font-size:12px;font-weight:600;color:var(--gn);font-family:DM Mono,monospace">R$ '+(parseFloat(av.valor)||0).toLocaleString('pt-BR')+'</span>'
+      +(av.parcelado?'<span style="font-size:10px;color:var(--bl)">'+av.nParc+'x</span>':'')
+      +(prazoStr?'<span style="font-size:11px;color:'+(atrasado?'var(--rd)':'var(--mu)')+'">📅 '+prazoStr+(atrasado?' ⚠ ATRASADO':'')+'</span>':'')
+      +'<span class="tag" style="font-size:10px">'+av.resp+'</span>'
+      +'</div>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'
+      +'<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px;background:var(--sf2);color:'+statusCor+'">'+statusLabel+'</span>'
+      +'<div style="display:flex;gap:4px">'
+      +(av.status!=='concluido'&&av.status!=='cancelado'?'<button data-id="'+av.id+'" onclick="avancarAvulso(this.dataset.id)" style="background:var(--gn-bg);color:var(--gn);border:1px solid var(--gn-bd);border-radius:var(--rs);font-size:11px;padding:3px 8px;cursor:pointer">→ Avançar</button>':'')
+      +(av.clienteExistId?'':'<button data-id="'+av.id+'" onclick="converterAvulsoEmCliente(this.dataset.id)" style="background:var(--bl-bg);color:var(--bl);border:1px solid var(--bl-bd);border-radius:var(--rs);font-size:10px;padding:3px 8px;cursor:pointer" title="Converter em cliente mensal">↗ Mensal</button>')
+      +'<button data-id="'+av.id+'" onclick="openAvulsoModal(this.dataset.id)" style="background:transparent;border:none;color:var(--mu);cursor:pointer;font-size:11px;padding:3px 6px">✏</button>'
+      +'<button data-id="'+av.id+'" onclick="delAvulso(this.dataset.id)" style="background:transparent;border:none;color:var(--rd);cursor:pointer;font-size:14px;padding:3px 6px">×</button>'
+      +'</div></div></div>'
+      // Tasks
+      +(av.taskIds?.length?'<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:8px">'
+        +av.taskIds.map(tid=>{const t=S.tasks[tid];if(!t)return'';return'<div style="display:flex;align-items:center;gap:8px;padding:4px 0"><div class="cb'+(t.done?' on':'')+'" data-tid="'+tid+'" onclick="toggleTask(this.dataset.tid)"></div><span style="font-size:12px;'+(t.done?'text-decoration:line-through;color:var(--mu)':'color:var(--tx)')+'">'+t.txt+'</span></div>';}).join('')
+        +'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
 window.forceMonthlyRecurrence=()=>{
   showConfirm({icon:'🔄',title:'Forçar recorrência mensal?',
     msg:'Gera receitas e tarefas do mês atual para todos os clientes ativos. Use apenas se a recorrência automática não rodou.',
@@ -2820,11 +3217,11 @@ function applyAccessControl(){
     const totalColabs=(S.colaboradores||[]).length;
     const anyHasEmail=(S.colaboradores||[]).some(c=>c.email&&c.email.trim());
     if(!anyHasEmail||totalColabs===0){
-      setNavAccess(['overview','gestao','clientes','rotina','financeiro','prospeccao','revisao','colaboradores','config','conteudo']);
+      setNavAccess(['overview','gestao','clientes','rotina','financeiro','prospeccao','revisao','colaboradores','config','conteudo','avulsos']);
       setTimeout(()=>showToast('⚠ Seu e-mail ainda não está vinculado a um colaborador. Vá em Colaboradores e adicione seu e-mail.'),1000);
       return;
     }
-    setNavAccess(['overview','clientes','rotina','conteudo']);
+    setNavAccess(['overview','clientes','rotina','conteudo','avulsos']);
     setTimeout(()=>showToast('⚠ E-mail não reconhecido. Peça ao administrador para vincular seu acesso.'),1000);
     return;
   }
@@ -2832,10 +3229,10 @@ function applyAccessControl(){
   const isSocio=currentColab?.isSocio;
 
   if(isAdm){
-    setNavAccess(['overview','gestao','clientes','rotina','financeiro','prospeccao','revisao','colaboradores','config','conteudo']);
+    setNavAccess(['overview','gestao','clientes','rotina','financeiro','prospeccao','revisao','colaboradores','config','conteudo','avulsos']);
   } else if(isSocio){
     // Sócio: vê tudo exceto Colaboradores e Config
-    setNavAccess(['overview','gestao','clientes','rotina','financeiro','prospeccao','revisao','conteudo']);
+    setNavAccess(['overview','gestao','clientes','rotina','financeiro','prospeccao','revisao','conteudo','avulsos']);
   } else {
     // Colaborador: vê apenas operacional
     setNavAccess(['overview','gestao','clientes','rotina','prospeccao','revisao','conteudo']);
@@ -3273,7 +3670,7 @@ function renderOverview(){
 }
 window.smartAlertClick=(i)=>{
   const a=(window._smartAlerts||[])[i];if(!a)return;
-  const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8,conteudo:9};
+  const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8,conteudo:9,avulsos:10};
 
   // If it has a taskId → open task directly
   if(a.taskId){
@@ -3325,7 +3722,7 @@ window.smartAlertClick=(i)=>{
 
 window.alertClick=(i)=>{
   const a=(window._alertItems||[])[i];if(!a||!a.nav)return;
-  const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8,conteudo:9};
+  const navMap={overview:0,gestao:1,clientes:2,rotina:3,financeiro:4,prospeccao:5,revisao:6,colaboradores:7,config:8,conteudo:9,avulsos:10};
   // If it has a task — go to tarefas tab directly
   if(a.taskId&&a.ci!==undefined){
     activeClient=a.ci;
@@ -6961,7 +7358,7 @@ window.renderAll=function(){
     const cur=el.value;el.innerHTML=opts;
     if([...el.options].some(o=>o.value===cur))el.value=cur;
   });
-  renderOverview();renderGestao();renderClientes();renderRotina();renderFinanceiro();renderProspeccao();renderRevisao();renderColaboradores();renderConfig();renderConteudo();renderInternalTasks();
+  renderOverview();renderGestao();renderClientes();renderRotina();renderFinanceiro();renderProspeccao();renderRevisao();renderColaboradores();renderConfig();renderConteudo();renderInternalTasks();renderAvulsos();
   if(currentColab||DEMO){const isAdm=DEMO||currentColab?.isAdm;const isSocio=currentColab?.isSocio;applyInPageRestrictions(isAdm,isSocio);}
 };
 
