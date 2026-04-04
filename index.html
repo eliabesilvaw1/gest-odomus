@@ -3970,15 +3970,39 @@ function tkHtml(taskId,showActions=true){
       prazoBadge='<span class="tag" style="background:var(--sf3);color:var(--mu)">📅 '+new Date(t.prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+'</span>';
     }
   }
-  return`<div class="task" id="taskrow-${taskId}">
-    <div class="cb${t.done?' on':''}" onclick="toggleTask('${taskId}')"></div>
+  // ── Ownership check — visual protection against accidental clicks ──
+  const myTag=currentColab?.tag||'';
+  const taskResps=(t.r||'').split('+').map(x=>x.trim());
+  const isMine=!myTag||taskResps.includes('Todos')||taskResps.includes(myTag)||DEMO;
+  const cbClick=isMine
+    ? `toggleTask('${taskId}')`
+    : `confirmOtherTask('${taskId}','${(t.r||'').replace(/'/g,"\\'")}')`;
+  const rowStyle=isMine?'':'opacity:0.65';
+  const cbTitle=isMine?'':'Tarefa de '+t.r+' — clique para confirmar';
+
+  return`<div class="task" id="taskrow-${taskId}" style="${rowStyle}">
+    <div class="cb${t.done?' on':''}" onclick="${cbClick}" title="${cbTitle}" style="${!isMine?'cursor:help':''}"></div>
     <div class="task-body">
       <div class="task-txt${t.done?' done':''}" onclick="openTaskModal('${taskId}')">${t.txt}</div>
       <div class="task-note" onclick="openTaskModal('${taskId}')">${t.note||'+ adicionar anotação'}</div>
-      <div class="task-tags">${tg(t.r)}${t.urgent&&!t.done?'<span class="tag tag-u">urgente</span>':''}${prazoBadge}${t.done?'<span class="tag tag-ok\" style=\"cursor:pointer\" title=\"Ver detalhes\" onclick=\"openTaskModal(`${taskId}`)\">✓ ver</span>':''}</div>
+      <div class="task-tags">${tg(t.r)}${!isMine?'<span class="tag" style="background:var(--am-bg);color:var(--am);border-color:var(--am-bd)">🔒 '+t.r+'</span>':''}${t.urgent&&!t.done?'<span class="tag tag-u">urgente</span>':''}${prazoBadge}${t.done?'<span class="tag tag-ok\" style=\"cursor:pointer\" title=\"Ver detalhes\" onclick=\"openTaskModal(`${taskId}`)\">✓ ver</span>':''}</div>
     </div>${acts}
   </div>`;
 }
+
+// ── CONFIRM before marking another person's task ──
+window.confirmOtherTask=(id,resp)=>{
+  const t=S.tasks[id];if(!t)return;
+  const action=t.done?'Reabrir':'Marcar como concluída';
+  showConfirm({
+    icon:'🔒',
+    title:action+' tarefa de '+resp+'?',
+    msg:'Esta tarefa pertence a <b>'+resp+'</b>.<br>Tem certeza que deseja '+action.toLowerCase()+'?',
+    okLabel:action,
+    okClass:'safe',
+    onOk:()=>toggleTask(id)
+  });
+};
 
 // ── TOGGLE — single source of truth, registers in history ──
 window.toggleTask=(id)=>{
@@ -4253,6 +4277,7 @@ function renderOverview(){
   const allRotIds=Object.values(S.rotina).flat();
   const activeColabs=(S.colaboradores||[]).filter(c=>c.tag);
   const grid=document.getElementById('ov-rot-grid');
+  const myTag=currentColab?.tag||'';
   if(grid){
     const todosIds=allRotIds.filter(id=>{const t=T(id);return t&&t.r==='Todos';});
     grid.innerHTML=activeColabs.map(c=>{
@@ -4265,7 +4290,9 @@ function renderOverview(){
         if(t&&!t.done&&(t.r===c.tag||t.r.includes(c.tag)))vidIds.push(tid);
       });
       const allIds=[...new Set([...todosIds,...rotIds,...vidIds])];
-      return'<div><div class="sl" style="color:'+(c.textColor||'var(--mu)')+'">'+c.tag+'</div>'
+      const isMyCol=myTag&&c.tag===myTag;
+      const colSt=isMyCol?'border:2px solid '+(c.textColor||'var(--bl)')+';border-radius:var(--r);padding:8px;background:var(--sf2)':'';
+      return'<div style="'+colSt+'"><div class="sl" style="color:'+(c.textColor||'var(--mu)')+(isMyCol?';font-weight:700':'')+'">'+c.tag+(isMyCol?' 👤':'')+'</div>'
         +(allIds.length?allIds.map(id=>tkHtml(id)).join(''):'<div class="empty">Sem tarefas</div>')+'</div>';
     }).join('');
     if(!activeColabs.length)grid.innerHTML='<div class="empty">Nenhum colaborador cadastrado.</div>';
