@@ -2983,54 +2983,89 @@ window.goToClientTarefas=(i)=>{
 
 let gestaoShowInactive=false;
 
+let _gestaoSearch='';
+let _gestaoPhaseFilter='all';
+
 function renderGestao(){
   if(!S)return;
   const chipsEl=document.getElementById('gestao-chips');
   chipsEl.innerHTML='';
 
-  // Filter toggle
   const activeClients=S.clients.filter(c=>c.active!==false);
   const inactiveClients=S.clients.filter(c=>c.active===false);
-  const visibleClients=gestaoShowInactive?inactiveClients:activeClients;
+  const baseClients=gestaoShowInactive?inactiveClients:activeClients;
 
-  // Tab buttons
-  const tabWrap=document.createElement('div');
-  tabWrap.style.cssText='display:flex;gap:6px;margin-bottom:12px;align-items:center;width:100%';
-
-  const tabAtivo=document.createElement('button');
-  tabAtivo.type='button';
-  tabAtivo.className='cl-tab-inactive'+((!gestaoShowInactive)?' on':'');
-  tabAtivo.textContent=`Ativos (${activeClients.length})`;
-  tabAtivo.onclick=()=>{gestaoShowInactive=false;renderGestao();};
-  tabWrap.appendChild(tabAtivo);
-
-  const tabInativo=document.createElement('button');
-  tabInativo.type='button';
-  tabInativo.className='cl-tab-inactive'+(gestaoShowInactive?' on':'');
-  tabInativo.textContent=`Inativos (${inactiveClients.length})`;
-  tabInativo.onclick=()=>{gestaoShowInactive=true;renderGestao();};
-  tabWrap.appendChild(tabInativo);
-
-  chipsEl.appendChild(tabWrap);
-
-  // Client chips
-  const chipRow=document.createElement('div');
-  chipRow.className='chips';
-  chipRow.style.marginBottom='0';
-
-  visibleClients.forEach(c=>{
-    const i=S.clients.indexOf(c);
-    const b=document.createElement('button');
-    b.type='button';
-    b.className='chip'+(i===activeGestaoClient?' on':'')+(c.active===false?' chip-inactive':'');
-    b.textContent=c.name;
-    b.onclick=()=>{activeGestaoClient=i;renderGestao();};
-    chipRow.appendChild(b);
+  // Apply search + phase filter
+  const q=(_gestaoSearch||'').toLowerCase().trim();
+  const visibleClients=baseClients.filter(c=>{
+    const matchSearch=!q||c.name.toLowerCase().includes(q)||(c.meta||'').toLowerCase().includes(q)||(c.resp||'').toLowerCase().includes(q);
+    const matchPhase=_gestaoPhaseFilter==='all'||c.phase===_gestaoPhaseFilter;
+    return matchSearch&&matchPhase;
   });
 
-  const ab=document.createElement('button');ab.type='button';ab.className='chip';ab.style.borderStyle='dashed';ab.textContent='+ Novo';
-  ab.onclick=()=>openModal('modal-client');chipRow.appendChild(ab);
-  chipsEl.appendChild(chipRow);
+  // ── Top bar: tabs + search + filter ──
+  const topBar=document.createElement('div');
+  topBar.style.cssText='display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap';
+
+  // Active/Inactive tabs
+  const tabAtivo=document.createElement('button');
+  tabAtivo.type='button';tabAtivo.className='cl-tab-inactive'+((!gestaoShowInactive)?' on':'');
+  tabAtivo.textContent=`Ativos (${activeClients.length})`;
+  tabAtivo.onclick=()=>{gestaoShowInactive=false;_gestaoSearch='';_gestaoPhaseFilter='all';renderGestao();};
+  topBar.appendChild(tabAtivo);
+
+  const tabInativo=document.createElement('button');
+  tabInativo.type='button';tabInativo.className='cl-tab-inactive'+(gestaoShowInactive?' on':'');
+  tabInativo.textContent=`Inativos (${inactiveClients.length})`;
+  tabInativo.onclick=()=>{gestaoShowInactive=true;_gestaoSearch='';_gestaoPhaseFilter='all';renderGestao();};
+  topBar.appendChild(tabInativo);
+
+  // Phase filter
+  const phSel=document.createElement('select');
+  phSel.className='sel';phSel.style.cssText='font-size:11px;padding:3px 8px;min-width:130px';
+  const phases=[['all','Todas as fases'],['onb','Onboarding'],['impl','Implementação'],['gest','Gestão Mensal'],['esc','Escala']];
+  phases.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;if(v===_gestaoPhaseFilter)o.selected=true;phSel.appendChild(o);});
+  phSel.onchange=()=>{_gestaoPhaseFilter=phSel.value;renderGestao();};
+  topBar.appendChild(phSel);
+
+  // Search box
+  const srch=document.createElement('input');
+  srch.className='ti';srch.placeholder='🔍 Buscar cliente...';
+  srch.style.cssText='font-size:12px;padding:5px 10px;flex:1;min-width:160px';
+  srch.value=_gestaoSearch||'';
+  srch.oninput=()=>{_gestaoSearch=srch.value;renderGestao();};
+  topBar.appendChild(srch);
+
+  chipsEl.appendChild(topBar);
+
+  // ── Client chips — grouped by phase if no filter ──
+  if(visibleClients.length===0){
+    const empty=document.createElement('div');
+    empty.className='empty';empty.style.padding='12px 0';
+    empty.textContent=q?'Nenhum cliente encontrado para "'+q+'"':'Nenhum cliente nesta categoria.';
+    chipsEl.appendChild(empty);
+  } else {
+    const chipRow=document.createElement('div');
+    chipRow.className='chips';chipRow.style.marginBottom='0';
+
+    visibleClients.forEach(c=>{
+      const i=S.clients.indexOf(c);
+      const health=calcClientHealth(c);
+      const dotColor={g:'var(--gn)',a:'var(--am)',r:'var(--rd)'}[health.level];
+      const b=document.createElement('button');
+      b.type='button';
+      b.className='chip'+(i===activeGestaoClient?' on':'')+(c.active===false?' chip-inactive':'');
+      b.style.display='flex';b.style.alignItems='center';b.style.gap='5px';
+      b.innerHTML='<span style="width:7px;height:7px;border-radius:50%;background:'+dotColor+';flex-shrink:0;display:inline-block"></span>'+c.name;
+      b.onclick=()=>{activeGestaoClient=i;_gestaoSearch='';renderGestao();};
+      chipRow.appendChild(b);
+    });
+
+    const ab=document.createElement('button');ab.type='button';ab.className='chip';
+    ab.style.borderStyle='dashed';ab.textContent='+ Novo';
+    ab.onclick=()=>openModal('modal-client');chipRow.appendChild(ab);
+    chipsEl.appendChild(chipRow);
+  }
 
   const c=S.clients[activeGestaoClient];
   if(!c){document.getElementById('gestao-detail').innerHTML='';return;}
