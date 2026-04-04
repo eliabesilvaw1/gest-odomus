@@ -2045,6 +2045,11 @@ const DEF={
     {id:'col-duda',name:'Duda',role:'atendimento',tag:'Duda',taskIds:[],color:'var(--pu-bg)',textColor:'var(--pu)'},
     {id:'col-eliabe',name:'Eliabe',role:'trafego',tag:'Eliabe',taskIds:[],color:'var(--gn-bg)',textColor:'var(--gn)'},
   ],
+  avulsos:[],
+  prolabore:[],
+  impostos:[],
+  oportunidades:[],
+  metaFin:{},
 };
 
 function buildDefaultClients(){
@@ -6031,6 +6036,7 @@ window.confirmarPagamento=()=>{
   }
   dbW('fin',S.fin);
   closeModal('modal-pagar');
+  feedLog('💰','Pagamento recebido',f.client+' · '+fmt(f.val));
   renderFinanceiro();renderOverview();
   showToast(`✓ Pagamento de ${f.client} registrado`);
 };
