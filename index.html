@@ -6943,10 +6943,11 @@ function renderColaboradores(){
         +'<div style="font-size:13px;font-weight:500;color:var(--am);margin-bottom:2px">⚠ '+orphanTasks.length+' tarefa'+(orphanTasks.length>1?'s':'')+' com responsável removido</div>'
         +'<div style="font-size:11px;color:var(--mu)">'+orphanTasks.map(o=>o.txt.slice(0,50)).slice(0,3).join(' · ')+(orphanTasks.length>3?' ...':'')+'</div>'
         +'</div>'
-        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
         +'<span style="font-size:12px;color:var(--mu)">Redistribuir para:</span>'
         +'<select id="orphan-redist-sel" class="sel" style="padding:5px 10px;font-size:12px">'+opts+'</select>'
         +'<button class="c-btn" onclick="redistOrphans()" style="padding:6px 14px;font-size:12px">Redistribuir</button>'
+        +'<button class="ghost" onclick="delOrphans()" style="padding:6px 14px;font-size:12px;color:var(--rd);border-color:var(--rd-bd)">🗑 Remover órfãs</button>'
         +'</div>'
         +'</div>';
     } else {
@@ -7009,6 +7010,45 @@ window.removeColabTask=(colabId,taskId)=>{
   c.taskIds=(c.taskIds||[]).filter(id=>id!==taskId);
   dbW('colaboradores',S.colaboradores);
   renderColaboradores();
+};
+
+window.delOrphans=()=>{
+  showConfirm({icon:'🗑️',title:'Remover tarefas órfãs?',
+    msg:'Remove todas as tarefas com responsável que não existe mais. <b>Esta ação não pode ser desfeita.</b>',
+    okLabel:'Remover órfãs',okClass:'danger',
+    onOk:()=>{
+      const colabs=S.colaboradores||[];
+      const validTags=new Set([...colabs.map(c=>c.tag),'Todos']);
+      const seen=new Set();let count=0;
+      const toDelete=[];
+      [...Object.values(S.rotina||{}).flat(),
+       ...(S.clients||[]).flatMap(c=>c.taskIds||[]),
+       ...(S.finTasks||[]),
+       ...(S.prospTasks||[]),
+       ...(S.procTasks||[]),
+       ...(S.videos||[]).flatMap(v=>Object.values(v.taskIds||{})),
+       ...Object.keys(S.tasks||{})
+      ].forEach(tid=>{
+        if(seen.has(tid))return;seen.add(tid);
+        const t=S.tasks[tid];if(!t||t.done)return;
+        const r=t.r||'Todos';
+        if(r==='Todos')return;
+        const parts=r.split('+').map(x=>x.trim());
+        if(parts.some(p=>p&&p!=='Todos'&&!validTags.has(p))){
+          toDelete.push(tid);
+        }
+      });
+      toDelete.forEach(tid=>delete S.tasks[tid]);
+      // Also remove from client taskIds
+      (S.clients||[]).forEach(c=>{c.taskIds=(c.taskIds||[]).filter(id=>!toDelete.includes(id));});
+      // Remove from rotina
+      Object.keys(S.rotina||{}).forEach(key=>{S.rotina[key]=(S.rotina[key]||[]).filter(id=>!toDelete.includes(id));});
+      count=toDelete.length;
+      dbWMulti({tasks:S.tasks,clients:S.clients,rotina:S.rotina});
+      renderAll();
+      showToast('✓ '+count+' tarefa'+(count!==1?'s':'')+' órfã'+(count!==1?'s':'')+' removida'+(count!==1?'s':''));
+    }
+  });
 };
 
 window.redistOrphans=()=>{
