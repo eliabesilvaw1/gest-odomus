@@ -1109,6 +1109,18 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
       </div>
     </div>
 
+    <!-- Custos do serviço -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">💸 Custos do serviço (opcional)</div>
+      <div class="grid2" style="gap:8px">
+        <div><label class="form-label">Link na Bio (R$)</label><input class="ti" id="av-c-linkbio" type="number" style="width:100%" placeholder="0" oninput="calcAvCustos()"/></div>
+        <div><label class="form-label">Tráfego pago (R$)</label><input class="ti" id="av-c-trafego" type="number" style="width:100%" placeholder="0" oninput="calcAvCustos()"/></div>
+        <div><label class="form-label">Google Meu Negócio (R$)</label><input class="ti" id="av-c-gmn" type="number" style="width:100%" placeholder="0" oninput="calcAvCustos()"/></div>
+        <div><label class="form-label">Freelancer / Editor (R$)</label><input class="ti" id="av-c-freelancer" type="number" style="width:100%" placeholder="0" oninput="calcAvCustos()"/></div>
+      </div>
+      <div id="av-custos-preview" style="font-size:11px;color:var(--mu);margin-top:8px"></div>
+    </div>
+
     <!-- Prazo e responsável -->
     <div class="grid2" style="gap:10px;margin-bottom:12px">
       <div><label class="form-label">Prazo de entrega</label><input class="ti" type="date" id="av-prazo" style="width:100%"/></div>
@@ -1635,6 +1647,38 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
       </div>
     </div>
     <div id="co-perm-preview" style="font-size:12px;color:var(--mu);padding:6px 0"></div>
+
+    <!-- DADOS FINANCEIROS DO COLABORADOR -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">💰 Dados financeiros</div>
+      <div class="grid2" style="gap:10px;margin-bottom:10px">
+        <div>
+          <label class="form-label">Salário fixo (R$)</label>
+          <input class="ti" id="co-salario" type="number" style="width:100%" placeholder="Ex: 2500"/>
+        </div>
+        <div>
+          <label class="form-label">Comissão por venda (%)</label>
+          <input class="ti" id="co-comissao" type="number" style="width:100%" placeholder="Ex: 5"/>
+        </div>
+      </div>
+      <div class="grid2" style="gap:10px">
+        <div>
+          <label class="form-label">Chave Pix</label>
+          <input class="ti" id="co-pix" style="width:100%" placeholder="CPF, e-mail, telefone ou chave aleatória"/>
+        </div>
+        <div>
+          <label class="form-label">Tipo da chave Pix</label>
+          <select class="sel" id="co-pix-tipo" style="width:100%">
+            <option value="cpf">CPF</option>
+            <option value="email">E-mail</option>
+            <option value="telefone">Telefone</option>
+            <option value="aleatoria">Chave aleatória</option>
+            <option value="cnpj">CNPJ</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
     <div class="form-actions"><button class="ghost" onclick="closeModal('modal-colab')">Cancelar</button><button class="go" onclick="saveColab()">Salvar colaborador</button></div>
   </div>
 </div>
@@ -2900,6 +2944,25 @@ window.toggleAvParcela=()=>{
   if(isParc)calcAvParcela();
 };
 
+window.calcAvCustos=()=>{
+  const val=parseFloat(document.getElementById('av-valor').value)||0;
+  const linkbio=parseFloat(document.getElementById('av-c-linkbio')?.value)||0;
+  const trafego=parseFloat(document.getElementById('av-c-trafego')?.value)||0;
+  const gmn=parseFloat(document.getElementById('av-c-gmn')?.value)||0;
+  const freelancer=parseFloat(document.getElementById('av-c-freelancer')?.value)||0;
+  const totalCusto=linkbio+trafego+gmn+freelancer;
+  const caixa=val*0.1;
+  const lucro=val-totalCusto-caixa;
+  const prev=document.getElementById('av-custos-preview');
+  if(prev&&val>0){
+    prev.innerHTML='<div style="display:flex;gap:12px;flex-wrap:wrap">'
+      +'<span>💸 Custos: <b style="color:var(--rd)">R$ '+totalCusto.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</b></span>'
+      +'<span>📦 Caixa 10%: <b style="color:var(--am)">R$ '+caixa.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</b></span>'
+      +'<span>✓ Lucro: <b style="color:'+(lucro>=0?'var(--gn)':'var(--rd)')+'">R$ '+lucro.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</b></span>'
+      +'</div>';
+  } else if(prev){prev.innerHTML='';}
+};
+
 window.calcAvParcela=()=>{
   const val=parseFloat(document.getElementById('av-valor').value)||0;
   const n=parseInt(document.getElementById('av-nparc')?.value)||2;
@@ -2919,7 +2982,7 @@ window.openAvulsoModal=(id)=>{
   if(cliSel)cliSel.innerHTML=(S.clients||[]).filter(c=>c.active!==false).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');
   // Reset fields
   if(!id){
-    ['av-cli-nome','av-cli-tel','av-cli-email','av-cli-seg','av-desc','av-valor','av-cartao'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['av-cli-nome','av-cli-tel','av-cli-email','av-cli-seg','av-desc','av-valor','av-cartao','av-c-linkbio','av-c-trafego','av-c-gmn','av-c-freelancer'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('av-prazo').value='';
     document.getElementById('av-data-pag').value='';
     document.getElementById('av-parcela-block').style.display='none';
@@ -2948,6 +3011,13 @@ window.saveAvulso=()=>{
   const desc=document.getElementById('av-desc').value.trim();
   const valor=parseFloat(document.getElementById('av-valor').value)||0;
   const forma=document.getElementById('av-forma').value;
+  const custosAv={
+    linkbio:parseFloat(document.getElementById('av-c-linkbio')?.value)||0,
+    trafego:parseFloat(document.getElementById('av-c-trafego')?.value)||0,
+    gmn:parseFloat(document.getElementById('av-c-gmn')?.value)||0,
+    freelancer:parseFloat(document.getElementById('av-c-freelancer')?.value)||0,
+  };
+  const totalCustoAv=Object.values(custosAv).reduce((a,v)=>a+v,0);
   const prazo=document.getElementById('av-prazo').value;
   const resp=document.getElementById('av-resp').value;
   const dataPag=document.getElementById('av-data-pag').value;
@@ -2974,12 +3044,15 @@ window.saveAvulso=()=>{
   if(!S.avulsos)S.avulsos=[];
 
   const avId=_avCtx||uid();
+  const caixaAv=valor*0.1;
+  const lucroAv=valor-totalCustoAv-caixaAv;
   const av={
     id:avId,clienteNome,clienteTel,clienteEmail,clienteSeg,clienteExistId,
     servico,desc,valor,forma,prazo,resp,dataPag,cartao,
     pagStatus:_avStatus,mes,
     status:'aberto',
     parcelado:isParc,nParc:isParc?nParc:1,
+    custos:custosAv,totalCusto:totalCustoAv,caixa:caixaAv,lucro:lucroAv,
     criadoEm:Date.now(),taskIds:[]
   };
 
@@ -3005,18 +3078,46 @@ window.saveAvulso=()=>{
   }
 
   if(_avCtx){
+    // Remove old despesas from this avulso before re-adding
+    S.despesas=(S.despesas||[]).filter(d=>d.avulsoId!==avId);
     const idx=(S.avulsos||[]).findIndex(x=>x.id===avId);
     if(idx>=0)S.avulsos[idx]=av;else S.avulsos.push(av);
   } else {
     S.avulsos.push(av);
   }
 
-  dbWMulti({avulsos:S.avulsos,tasks:S.tasks,fin:S.fin,clients:S.clients});
+  // ── Auto-create despesas for each custo ──
+  if(!S.despesas)S.despesas=[];
+  const custoCatMap={
+    linkbio:{desc:'Link na Bio',cat:'ferramentas'},
+    trafego:{desc:'Tráfego pago',cat:'marketing'},
+    gmn:{desc:'Google Meu Negócio',cat:'marketing'},
+    freelancer:{desc:'Freelancer / Editor',cat:'freelancer'},
+  };
+  Object.entries(custosAv).forEach(([key,val])=>{
+    if(!val||val<=0)return;
+    const info=custoCatMap[key]||{desc:key,cat:'outro'};
+    S.despesas.push({
+      id:uid(),
+      avulsoId:avId,
+      desc:info.desc+' — '+clienteNome,
+      cat:info.cat,
+      detalhe:'Venda avulsa: '+servicoLabel,
+      val,mes,
+      status:'pend',
+      dataPag:'',
+      pagoPor:'',
+      recorrente:false,
+    });
+  });
+
+  dbWMulti({avulsos:S.avulsos,tasks:S.tasks,fin:S.fin,clients:S.clients,despesas:S.despesas});
   closeModal('modal-avulso');
   renderAvulsos();
   renderFinanceiro();
   auditLog('venda_avulsa_criada',clienteNome+' · '+servicoLabel+' · R$ '+valor);
-  showToast('✓ Venda avulsa criada — tarefa gerada no calendário');
+  const nDesps=Object.values(custosAv).filter(v=>v>0).length;
+  showToast('✓ Venda avulsa criada — tarefa gerada'+(nDesps>0?' · '+nDesps+' despesa'+(nDesps>1?'s':'')+' lançada'+(nDesps>1?'s':''):''));
 };
 
 window.updateAvServicoHint=()=>{};
@@ -3102,6 +3203,7 @@ window.renderAvulsos=function renderAvulsos(){
       +(av.desc?'<div style="font-size:12px;color:var(--mu2);margin-bottom:4px">'+av.desc.slice(0,80)+(av.desc.length>80?'...':'')+'</div>':'')
       +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
       +'<span style="font-size:12px;font-weight:600;color:var(--gn);font-family:DM Mono,monospace">R$ '+(parseFloat(av.valor)||0).toLocaleString('pt-BR')+'</span>'
+      +(av.totalCusto>0?'<span style="font-size:11px;color:var(--mu)">· lucro: R$ '+(parseFloat(av.lucro)||0).toLocaleString('pt-BR')+'</span>':'')
       +(av.parcelado?'<span style="font-size:10px;color:var(--bl)">'+av.nParc+'x</span>':'')
       +(prazoStr?'<span style="font-size:11px;color:'+(atrasado?'var(--rd)':'var(--mu)')+'">📅 '+prazoStr+(atrasado?' ⚠ ATRASADO':'')+'</span>':'')
       +'<span class="tag" style="font-size:10px">'+av.resp+'</span>'
@@ -4021,6 +4123,19 @@ function renderGestaoChips(){
           </div>
         </div>
       </div>
+      <!-- ACESSOS DO CLIENTE -->
+      <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-top:12px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">🔑 Acessos e links</div>
+        <div class="ficha-grid">
+          ${fichaField('Facebook / Meta Business','fb_acesso',c.fb_acesso,'+ link ou usuário')}
+          ${fichaField('Google Meu Negócio (GMN)','gmn_acesso',c.gmn_acesso,'+ link ou e-mail de acesso')}
+          ${fichaField('Link do Dropbox / Drive','dropbox',c.dropbox,'+ link da pasta')}
+          ${fichaField('Instagram','ig_handle',c.ig_handle,'@handle')}
+          ${fichaField('BM / Gerenciador de Anúncios','bm_acesso',c.bm_acesso,'+ ID ou link do BM')}
+          ${fichaField('Senha / acesso geral','acesso_obs',c.acesso_obs,'+ observação de acesso')}
+        </div>
+      </div>
+
       <div style="margin-top:4px">
         <div class="ficha-label" style="margin-bottom:6px">Observações gerais</div>
         <textarea class="ta" id="gst-obs" placeholder="Notas, informações sensíveis, contexto do cliente..." style="min-height:80px;width:100%">${c.obs||''}</textarea>
@@ -6974,6 +7089,8 @@ function renderColaboradores(){
         <div class="role-tags">${((Array.isArray(c.roles)?c.roles:[c.role||'outro']).map(r=>`<span class="role-badge ${ROLE_CLASS_MAP[r]||'role-outro'}">${ROLE_LABELS[r]||r}</span>`)).join('')}</div>
         ${c.isAdm?'<span class="badge-adm">Admin</span>':''}
         ${c.isSocio?'<span class="badge-socio">Sócio</span>':''}
+        ${c.pix?`<span style="font-size:10px;color:var(--mu);background:var(--sf2);border:1px solid var(--bd2);padding:1px 6px;border-radius:6px">Pix: ${c.pix}</span>`:''}
+        ${c.salario?`<span style="font-size:10px;color:var(--gn);background:var(--gn-bg);border:1px solid var(--gn-bd);padding:1px 6px;border-radius:6px">R$ ${parseFloat(c.salario).toLocaleString('pt-BR')}/mês</span>`:''}
         ${!c.isAdm&&!c.isSocio?'<span class="badge-colab">Colaborador</span>':''}
         <span style="font-size:11px;color:var(--mu);background:var(--sf2);padding:3px 9px;border-radius:10px;border:1px solid var(--bd2);cursor:pointer" onclick="editColabField(${i},'tag')" title="Tag nas tarefas">tag: ${c.tag||c.name}</span>
         <div style="display:flex;gap:6px;margin-left:auto">
@@ -7127,9 +7244,13 @@ window.openColabModal=(id)=>{
     document.getElementById('co-name').value=c.name||'';
     document.getElementById('co-tag').value=c.tag||'';
     document.getElementById('co-email').value=c.email||'';
-    // Show invite btn only for existing colabs with email
     const invBtn=document.getElementById('co-invite-btn');
     if(invBtn)invBtn.style.display=c.email?'block':'none';
+    // Financial fields
+    const coSal=document.getElementById('co-salario');if(coSal)coSal.value=c.salario||'';
+    const coCom=document.getElementById('co-comissao');if(coCom)coCom.value=c.comissao||'';
+    const coPix=document.getElementById('co-pix');if(coPix)coPix.value=c.pix||'';
+    const coPixTipo=document.getElementById('co-pix-tipo');if(coPixTipo)coPixTipo.value=c.pixTipo||'cpf';
     window._colabSelectedRoles=c.roles||[c.role||'outro'];
     colabTplSelected=new Set(c.taskIds||[]);
     document.getElementById('colab-modal-title').textContent='Editar colaborador';
@@ -7142,6 +7263,8 @@ window.openColabModal=(id)=>{
     document.getElementById('co-email').value='';
     const invBtn=document.getElementById('co-invite-btn');
     if(invBtn)invBtn.style.display='none';
+    ['co-salario','co-comissao','co-pix'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const cpt=document.getElementById('co-pix-tipo');if(cpt)cpt.value='cpf';
     window._colabSelectedRoles=[];
     document.getElementById('colab-modal-title').textContent='Novo colaborador';
     document.getElementById('co-is-adm').checked=false;
@@ -7224,15 +7347,19 @@ window.saveColab=()=>{
   const isAdm=document.getElementById('co-is-adm').checked;
   const isSocio=document.getElementById('co-is-socio').checked;
   const percSocio=isSocio?(parseFloat(document.getElementById('co-socio-perc').value)||0):0;
+  const salario=parseFloat(document.getElementById('co-salario')?.value)||0;
+  const comissao=parseFloat(document.getElementById('co-comissao')?.value)||0;
+  const pix=document.getElementById('co-pix')?.value.trim()||'';
+  const pixTipo=document.getElementById('co-pix-tipo')?.value||'cpf';
   if(!name)return;
   if(!S.colaboradores)S.colaboradores=[];
   const idx=S.colaboradores.length%AVATAR_COLORS.length;
 
   if(colabModalCtx){
     const c=S.colaboradores.find(x=>x.id===colabModalCtx);
-    if(c){c.name=name;c.role=role;c.roles=roles;c.tag=tag;c.email=email;c.taskIds=[...colabTplSelected];c.isAdm=isAdm;c.isSocio=isSocio;c.percSocio=percSocio;}
+    if(c){Object.assign(c,{name,role,roles,tag,email,taskIds:[...colabTplSelected],isAdm,isSocio,percSocio,salario,comissao,pix,pixTipo});}
   } else {
-    S.colaboradores.push({id:uid(),name,role,roles,tag,email,taskIds:[...colabTplSelected],color:AVATAR_COLORS[idx],textColor:AVATAR_TEXT[idx],isAdm,isSocio,percSocio});
+    S.colaboradores.push({id:uid(),name,role,roles,tag,email,taskIds:[...colabTplSelected],color:AVATAR_COLORS[idx],textColor:AVATAR_TEXT[idx],isAdm,isSocio,percSocio,salario,comissao,pix,pixTipo});
   }
   dbW('colaboradores',S.colaboradores);
 
