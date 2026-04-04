@@ -2342,6 +2342,13 @@ function checkBackupReminder(){
   }
 }
 
+window.toggleNext=(el)=>{
+  const next=el.nextElementSibling;if(!next)return;
+  const isOpen=next.style.display!=='none';
+  next.style.display=isOpen?'none':'block';
+  el.textContent=el.textContent.replace(isOpen?'▲':'▼',isOpen?'▼':'▲');
+};
+
 window.forceMonthlyRecurrence=()=>{
   showConfirm({icon:'🔄',title:'Forçar recorrência mensal?',
     msg:'Gera receitas e tarefas do mês atual para todos os clientes ativos. Use apenas se a recorrência automática não rodou.',
@@ -2605,7 +2612,7 @@ function tkHtml(taskId,showActions=true){
     <div class="task-body">
       <div class="task-txt${t.done?' done':''}" onclick="openTaskModal('${taskId}')">${t.txt}</div>
       <div class="task-note" onclick="openTaskModal('${taskId}')">${t.note||'+ adicionar anotação'}</div>
-      <div class="task-tags">${tg(t.r)}${t.urgent&&!t.done?'<span class="tag tag-u">urgente</span>':''}${prazoBadge}${t.done?'<span class="tag tag-ok">feito</span>':''}</div>
+      <div class="task-tags">${tg(t.r)}${t.urgent&&!t.done?'<span class="tag tag-u">urgente</span>':''}${prazoBadge}${t.done?'<span class="tag tag-ok\" style=\"cursor:pointer\" title=\"Ver detalhes\" onclick=\"openTaskModal(`${taskId}`)\">✓ ver</span>':''}</div>
     </div>${acts}
   </div>`;
 }
