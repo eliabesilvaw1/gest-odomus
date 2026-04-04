@@ -1981,7 +1981,7 @@ function getRespList(){
   if(tags.length>=3)all.push(tags[0]+'+'+tags[2],tags[1]+'+'+tags[2]);
   return all;
 }
-const TITLES={overview:'Visão Geral',gestao:'Gestão de Clientes',clientes:'Tarefas',rotina:'Rotina Diária',financeiro:'Financeiro',prospeccao:'Prospecção',revisao:'Revisão Interna',colaboradores:'Colaboradores',config:'Config. Tarefas',conteudo:'Produção de Conteúdo'};
+const TITLES={overview:'Visão Geral',gestao:'Gestão de Clientes',clientes:'Tarefas',rotina:'Rotina Diária',financeiro:'Financeiro',prospeccao:'Prospecção',revisao:'Revisão Interna',colaboradores:'Colaboradores',config:'Config. Tarefas',conteudo:'Produção de Conteúdo',avulsos:'Vendas Avulsas'};
 const HIST_COLORS={Alonso:'var(--bl-bg)',Duda:'var(--pu-bg)',Eliabe:'var(--gn-bg)',Todos:'var(--am-bg)'};
 const HIST_TEXT={Alonso:'var(--bl)',Duda:'var(--pu)',Eliabe:'var(--gn)',Todos:'var(--am)'};
 const HIST_TYPE_LABEL={note:'Anotação',entrega:'Entrega',reuniao:'Reunião',alerta:'Alerta',task:'Tarefa concluída',phase:'Mudança de etapa'};
@@ -3423,6 +3423,13 @@ window.goNav=(id,btn)=>{
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
   document.getElementById('sec-'+id).classList.add('on');
   document.getElementById('pg-title').textContent=TITLES[id]||id;
+  // Trigger section render on navigate
+  if(id==='avulsos')renderAvulsos();
+  else if(id==='financeiro')renderFinanceiro();
+  else if(id==='prospeccao')renderProspeccao();
+  else if(id==='colaboradores')renderColaboradores();
+  else if(id==='config')renderConfig();
+  else if(id==='conteudo')renderConteudo();
 };
 
 // ── TASK ACCESS ──
