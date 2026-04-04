@@ -3423,13 +3423,8 @@ window.goNav=(id,btn)=>{
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
   document.getElementById('sec-'+id).classList.add('on');
   document.getElementById('pg-title').textContent=TITLES[id]||id;
-  // Trigger section render on navigate
-  if(id==='avulsos')setTimeout(()=>renderAvulsos(),50);
-  else if(id==='financeiro')renderFinanceiro();
-  else if(id==='prospeccao')renderProspeccao();
-  else if(id==='colaboradores')renderColaboradores();
-  else if(id==='config')renderConfig();
-  else if(id==='conteudo')renderConteudo();
+  // Only re-render avulsos since it needs fresh data on navigate
+  if(id==='avulsos'&&S)setTimeout(()=>renderAvulsos(),30);
 };
 
 // ── TASK ACCESS ──
