@@ -3986,7 +3986,8 @@ window.toggleTask=(id)=>{
   const writes={};
   writes['tasks/'+id]=S.tasks[id];
   if(!wasDone){
-    feedLog('✅','Tarefa concluída',S.tasks[id]?.txt?.slice(0,60)||'');
+    const _t=S.tasks[id];const _owner=_t?.r&&_t.r!=='Todos'?' [tarefa de '+_t.r+']':'';
+    feedLog('✅','Tarefa concluída',(_t?.txt?.slice(0,55)||'')+_owner);
     const ci=(S.clients||[]).findIndex(c=>(c.taskIds||[]).includes(id));
     if(ci>=0){
       if(!S.clients[ci].history)S.clients[ci].history=[];
@@ -4009,7 +4010,8 @@ window.toggleTask=(id)=>{
     }
   } else {
     // Task reopened — log to feed
-    feedLog('↩️','Tarefa reaberta',S.tasks[id]?.txt?.slice(0,60)||'');
+    const _t2=S.tasks[id];const _owner2=_t2?.r&&_t2.r!=='Todos'?' [tarefa de '+_t2.r+']':'';
+      feedLog('↩️','Tarefa reaberta',(_t2?.txt?.slice(0,55)||'')+_owner2);
   }
   Object.entries(writes).forEach(([p,v])=>dbW(p,v));
   renderAll();
