@@ -1675,8 +1675,28 @@ function fmtDate(ts){const d=new Date(ts);return d.toLocaleDateString('pt-BR',{d
 function saveDemo(){try{localStorage.setItem(DEMO_DATA_KEY,JSON.stringify(S));}catch(e){}}
 function dbW(path,val){if(DEMO){saveDemo();return;}if(!db)return;set(ref(db,'domus/'+path),val);}
 function dbPatch(path,patch){if(DEMO){saveDemo();return;}if(!db)return;update(ref(db,'domus/'+path),patch);}
-// Atomic multi-path write — fires onValue only ONCE, prevents race conditions
 function dbWMulti(paths){if(DEMO){saveDemo();return;}if(!db)return;update(ref(db,'domus'),paths);}
+
+// ── AUDIT LOG ──
+function auditLog(action,detail){
+  if(!db||DEMO)return;
+  const who=currentColab?.name||currentUser?.email||'desconhecido';
+  const entry={id:uid(),ts:Date.now(),who,action,detail:detail||''};
+  // Write directly to audit path (separate from domus data)
+  const auditRef=ref(db,'audit/'+entry.id);
+  set(auditRef,entry).catch(e=>console.warn('Audit log failed:',e));
+}
+
+// Hook key actions for audit
+const _origDbW=dbW;
+function loggedDbW(path,val){
+  // Log significant writes
+  if(path==='clients')auditLog('clientes_atualizado','Dados dos clientes salvos');
+  else if(path==='fin')auditLog('financeiro_atualizado','Lançamentos financeiros salvos');
+  else if(path==='colaboradores')auditLog('colaboradores_atualizado','Colaboradores salvos');
+  else if(path==='templates')auditLog('templates_atualizado','Templates salvos');
+  _origDbW(path,val);
+}
 function setSync(st,label){document.getElementById('sync-dot').className='sync-dot'+(st==='live'?' live':st==='err'?' err':'');document.getElementById('sync-lbl').textContent=label;}
 
 // Convert Firebase object (numeric keys) to sorted array
@@ -1785,9 +1805,10 @@ function startDataListener(){
     try{
       if(!snap.exists()){set(ref(db,'domus'),DEF).catch(e=>console.error('seed error',e));S=JSON.parse(JSON.stringify(DEF));}
       else{S=fixS(snap.val());}
-      // Match logged user to colaborador record
       resolveCurrentColab();
       showApp();
+      // Log login
+      auditLog('login','Acesso ao sistema');
       setSync('live','tempo real');
       document.getElementById('rt-badge').style.display='flex';
     }catch(e){console.error('onValue error:',e);setSync('err','erro ao processar dados');}
@@ -2207,6 +2228,15 @@ window.openBackupPanel=()=>{
     +'<input type="file" accept=".json" style="display:none" onchange="importBackup(this)"/>'
     +'</label></div>'
 
+    // Audit log section
+    +'<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:12px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em">📋 Log de auditoria</div>'
+    +'<button class="ghost" style="font-size:11px;padding:3px 10px" onclick="loadAuditLog()">Ver registros</button>'
+    +'</div>'
+    +'<div id="audit-log-list" style="font-size:11px;color:var(--mu)">Clique em "Ver registros" para carregar.</div>'
+    +'</div>'
+
     // Firebase tips
     +'<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px">'
     +'<div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">🔒 Segurança Firebase</div>'
@@ -2215,7 +2245,8 @@ window.openBackupPanel=()=>{
     +'<div>✓ Conexão criptografada (HTTPS)</div>'
     +'<div>✓ Backup automático diário ativo (Blaze)</div>'
     +'<div>✓ Imagens salvas no Firebase Storage</div>'
-    +'<div style="color:var(--am)">⚠ Recomendado: configurar regras de segurança por usuário</div>'
+    +'<div>✓ Regras de segurança — só autenticados acessam</div>'
+    +'<div>✓ Log de auditoria ativo</div>'
     +'<a href="https://console.firebase.google.com" target="_blank" style="color:var(--bl);font-size:11px;display:block;margin-top:6px">→ Abrir console Firebase</a>'
     +'</div></div>';
 
@@ -2347,6 +2378,42 @@ window.toggleNext=(el)=>{
   const isOpen=next.style.display!=='none';
   next.style.display=isOpen?'none':'block';
   el.textContent=el.textContent.replace(isOpen?'▲':'▼',isOpen?'▼':'▲');
+};
+
+window.loadAuditLog=()=>{
+  if(!db){document.getElementById('audit-log-list').textContent='Firebase não conectado.';return;}
+  const el=document.getElementById('audit-log-list');
+  if(!el)return;
+  el.textContent='Carregando...';
+  // Read last 50 audit entries
+  import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js').then(({query,orderByChild,limitToLast,get})=>{
+    const auditRef=ref(db,'audit');
+    get(query(auditRef,orderByChild('ts'),limitToLast(50))).then(snap=>{
+      if(!snap.exists()){el.textContent='Nenhum registro ainda.';return;}
+      const entries=Object.values(snap.val()).sort((a,b)=>b.ts-a.ts);
+      const actionLabel={
+        login:'🔑 Login',
+        cliente_criado:'➕ Cliente criado',
+        cliente_removido:'🗑️ Cliente removido',
+        clientes_atualizado:'✏️ Clientes editados',
+        financeiro_atualizado:'💰 Financeiro editado',
+        colaboradores_atualizado:'👥 Colaboradores editados',
+        templates_atualizado:'📋 Templates editados',
+        pagamento_marcado:'✅ Pagamento marcado',
+      };
+      el.innerHTML='<div style="max-height:200px;overflow-y:auto">'
+        +entries.map(e=>{
+          const d=new Date(e.ts).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+          const label=actionLabel[e.action]||e.action;
+          return'<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd);align-items:baseline">'
+            +'<span style="color:var(--mu);flex-shrink:0;width:110px">'+d+'</span>'
+            +'<span style="color:var(--bl);flex-shrink:0;width:80px;font-size:10px">'+e.who+'</span>'
+            +'<span style="flex:1">'+label+(e.detail?' — <span style="color:var(--mu2)">'+e.detail+'</span>':'')+'</span>'
+            +'</div>';
+        }).join('')
+        +'</div>';
+    }).catch(e=>{el.textContent='Erro ao carregar: '+e.message;});
+  });
 };
 
 window.forceMonthlyRecurrence=()=>{
@@ -3699,6 +3766,7 @@ window.removeClient=(i)=>{
     onOk:()=>{
       const clientId=S.clients[i].id;
       const clientName=S.clients[i].name;
+      auditLog('cliente_removido','Cliente: '+clientName);
       (S.clients[i].taskIds||[]).forEach(id=>delete S.tasks[id]);
       S.fin=(S.fin||[]).filter(f=>f.clientId!==clientId&&f.client!==clientName);
       S.clients.splice(i,1);
@@ -3742,9 +3810,9 @@ window.saveClient=()=>{
   closeModal('modal-client');
   ['mc-name','mc-meta','mc-valor','mc-venc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
 
-  // Log creation in history
   const c=S.clients[activeClient];
   c.history=[{id:uid(),type:'note',txt:`Cliente criado. Fase: ${PHASES[phase]||phase}. Responsável: ${resp}${valor?' · Contrato: '+valor:''}.`,who:resp,ts:Date.now()}];
+  auditLog('cliente_criado','Cliente: '+name);
 
   // ── AUTO-CREATE FINANCEIRO ENTRIES (with parcelas) ──
   // Read each active service + its parcela count
