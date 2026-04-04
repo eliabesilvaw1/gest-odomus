@@ -2054,16 +2054,18 @@ function dbPatch(path,patch){if(DEMO){saveDemo();return;}if(!db)return;update(re
 function dbWMulti(paths){if(DEMO){saveDemo();return;}if(!db)return;update(ref(db,'domus'),paths);}
 
 // ── AUDIT LOG ──
-function auditLog(action,detail,feedIcon){
+function auditLog(action,detail,feedIcon,skipFeed){
   if(!db||DEMO)return;
   const who=currentColab?.name||currentUser?.email||'desconhecido';
   const entry={id:uid(),ts:Date.now(),who,action,detail:detail||'',icon:feedIcon||'⚡'};
-  // Write to audit path
+  // Write to audit path always
   const auditRef=ref(db,'audit/'+entry.id);
   set(auditRef,entry).catch(e=>console.warn('Audit log failed:',e));
-  // Also write to feed for real-time display (keep last 100)
-  const feedRef=ref(db,'feed/'+entry.id);
-  set(feedRef,entry).catch(e=>console.warn('Feed log failed:',e));
+  // Write to feed only if not skipFeed
+  if(!skipFeed){
+    const feedRef=ref(db,'feed/'+entry.id);
+    set(feedRef,entry).catch(e=>console.warn('Feed log failed:',e));
+  }
 }
 
 function feedLog(icon,msg,detail){
@@ -2195,8 +2197,8 @@ function startDataListener(){
       else{S=fixS(snap.val());}
       resolveCurrentColab();
       showApp();
-      // Log login
-      auditLog('login','Acesso ao sistema');
+      // Log login (audit only, not feed)
+      auditLog('login','Acesso ao sistema','🔑',true);
       setSync('live','tempo real');
       document.getElementById('rt-badge').style.display='flex';
     }catch(e){console.error('onValue error:',e);setSync('err','erro ao processar dados');}
