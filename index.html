@@ -2000,27 +2000,14 @@ const DEF={
   tasks:{},
   clients:[],
   rotina:{msgs:[],traf:[],copy:[],gmn:[],ind:[]},
-  fin:[
-    {id:'fin1',client:'Clínica Ana',val:2100,venc:5,forma:'Pix',status:'ok',dataPag:'2025-03-05',mes:'2025-03',
-     servicos:{linkbio:250,dominio:40,trafego:400,gmn:90}},
-    {id:'fin2',client:'Dr. Marcelo',val:2100,venc:5,forma:'Recorrente',status:'pending',dataPag:'',mes:'2025-03',
-     servicos:{linkbio:0,dominio:40,trafego:400,gmn:90}},
-    {id:'fin3',client:'Clínica Renata',val:2100,venc:5,forma:'Pix',status:'late',dataPag:'',mes:'2025-03',
-     servicos:{linkbio:250,dominio:40,trafego:400,gmn:90}},
-    {id:'fin4',client:'Clínica Rafael',val:2100,venc:5,forma:'Boleto',status:'ok',dataPag:'2025-03-05',mes:'2025-03',
-     servicos:{linkbio:0,dominio:40,trafego:0,gmn:90}},
-  ],
-  despesas:[
-    {id:'d1',desc:'Energia',cat:'energia',val:200,mes:'2025-03',status:'ok',dataPag:'2025-03-10',recorrente:true},
-    {id:'d2',desc:'Internet',cat:'internet',val:150,mes:'2025-03',status:'ok',dataPag:'2025-03-10',recorrente:true},
-    {id:'d3',desc:'Ferramentas',cat:'ferramentas',val:736,mes:'2025-03',status:'ok',dataPag:'2025-03-05',recorrente:true},
-  ],
+  fin:[],
+  despesas:[],
   finTasks:[],
   funil:[
-    {stage:'Contato inicial',n:8,color:'#5b9cf6'},
-    {stage:'Apresentação feita',n:5,color:'#a78bfa'},
-    {stage:'Proposta enviada',n:3,color:'#22d38a'},
-    {stage:'Em negociação',n:2,color:'#f5a623'},
+    {stage:'Contato inicial',n:0,color:'#5b9cf6'},
+    {stage:'Apresentação feita',n:0,color:'#a78bfa'},
+    {stage:'Proposta enviada',n:0,color:'#22d38a'},
+    {stage:'Em negociação',n:0,color:'#f5a623'},
   ],
   prospTasks:[],procTasks:[],
   revisao:[
@@ -2032,31 +2019,18 @@ const DEF={
     {txt:'Prospecção: quantos leads na semana? Quem avançou no funil?',who:'Alonso',time:'5 min',note:''},
   ],
   cfgTasks:[],
-  templates:[], // [{id, nome, descricao, segmento, tarefas:[{txt,fase,cat,resp,diasAposInicio,urgente,desc}]}]
-  lastMonthlyRun:'', // tracks last month recurrence ran
-  lastWeeklySummary:'', // tracks last weekly summary shown
-  internalTasks:[], // tarefas avulsas internas da Domus
-  prolabore:[], // pró-labore e retiradas
-  impostos:[], // impostos e provisões
-  oportunidades:[], // oportunidades de prospecção
-  metaFin:{}, // {val: number} meta mensal
-  avulsos:[], // vendas avulsas [{id,cliente,servico,valor,status,tarefas[],pagamento{}}]
-  videos:[],
-  socios:[
-    {id:'soc1',name:'Alonso',perc:33.33,color:'var(--bl-bg)',tc:'var(--bl)'},
-    {id:'soc2',name:'Duda',perc:33.33,color:'var(--pu-bg)',tc:'var(--pu)'},
-    {id:'soc3',name:'Eliabe',perc:33.34,color:'var(--gn-bg)',tc:'var(--gn)'},
-  ],
-  colaboradores:[
-    {id:'col-alonso',name:'Alonso',role:'comercial',tag:'Alonso',email:'',taskIds:[],color:'var(--bl-bg)',textColor:'var(--bl)',isAdm:true,isSocio:true,percSocio:0},
-    {id:'col-duda',name:'Duda',role:'atendimento',tag:'Duda',taskIds:[],color:'var(--pu-bg)',textColor:'var(--pu)'},
-    {id:'col-eliabe',name:'Eliabe',role:'trafego',tag:'Eliabe',taskIds:[],color:'var(--gn-bg)',textColor:'var(--gn)'},
-  ],
-  avulsos:[],
+  templates:[],
+  lastMonthlyRun:'',
+  lastWeeklySummary:'',
+  internalTasks:[],
   prolabore:[],
   impostos:[],
   oportunidades:[],
   metaFin:{},
+  avulsos:[],
+  videos:[],
+  socios:[],
+  colaboradores:[],
 };
 
 function buildDefaultClients(){
@@ -4280,8 +4254,14 @@ function renderOverview(){
   const myTag=currentColab?.tag||'';
   if(grid){
     const todosIds=allRotIds.filter(id=>{const t=T(id);return t&&t.r==='Todos';});
-    grid.innerHTML=activeColabs.map(c=>{
-      const rotIds=allRotIds.filter(id=>{const t=T(id);if(!t)return false;return t.r===c.tag||t.r.includes(c.tag);});
+    // 'Todos' tasks appear in a dedicated shared column — NOT duplicated in each person's column
+    const todosCols=[];
+    if(todosIds.length){
+      todosCols.push('<div style="opacity:0.9"><div class="sl" style="color:var(--mu)">📋 Todos</div>'+todosIds.map(id=>tkHtml(id)).join('')+'</div>');
+    }
+    const perColHtml=activeColabs.map(c=>{
+      // Only tasks specifically assigned to this person (NOT 'Todos')
+      const rotIds=allRotIds.filter(id=>{const t=T(id);if(!t)return false;return t.r===c.tag||t.r.split('+').map(x=>x.trim()).includes(c.tag);});
       const vidIds=[];
       (S.videos||[]).forEach(v=>{
         if(v.etapa==='entregue')return;
@@ -4289,12 +4269,13 @@ function renderOverview(){
         const t=S.tasks[tid];
         if(t&&!t.done&&(t.r===c.tag||t.r.includes(c.tag)))vidIds.push(tid);
       });
-      const allIds=[...new Set([...todosIds,...rotIds,...vidIds])];
+      const allIds=[...new Set([...rotIds,...vidIds])];
       const isMyCol=myTag&&c.tag===myTag;
       const colSt=isMyCol?'border:2px solid '+(c.textColor||'var(--bl)')+';border-radius:var(--r);padding:8px;background:var(--sf2)':'';
       return'<div style="'+colSt+'"><div class="sl" style="color:'+(c.textColor||'var(--mu)')+(isMyCol?';font-weight:700':'')+'">'+c.tag+(isMyCol?' 👤':'')+'</div>'
-        +(allIds.length?allIds.map(id=>tkHtml(id)).join(''):'<div class="empty">Sem tarefas</div>')+'</div>';
-    }).join('');
+        +(allIds.length?allIds.map(id=>tkHtml(id)).join(''):'<div class="empty" style="font-size:11px">Sem tarefas pessoais</div>')+'</div>';
+    });
+    grid.innerHTML=[...todosCols,...perColHtml].join('');
     if(!activeColabs.length)grid.innerHTML='<div class="empty">Nenhum colaborador cadastrado.</div>';
   }
 
