@@ -1138,16 +1138,92 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
       <div id="av-custos-preview" style="font-size:11px;color:var(--mu);margin-top:8px"></div>
     </div>
 
-    <!-- Prazo e responsável -->
+    <!-- Prazo, responsável e comissão -->
     <div class="grid2" style="gap:10px;margin-bottom:12px">
       <div><label class="form-label">Prazo de entrega</label><input class="ti" type="date" id="av-prazo" style="width:100%"/></div>
-      <div><label class="form-label">Responsável</label><select class="sel" id="av-resp" style="width:100%"></select></div>
+      <div><label class="form-label">Responsável pela venda</label><select class="sel" id="av-resp" style="width:100%"></select></div>
+    </div>
+    <!-- Comissão -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em">🤝 Comissão do responsável</div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="av-tem-comissao" style="accent-color:var(--bl)" onchange="toggleAvComissao()"/> Tem comissão
+        </label>
+      </div>
+      <div id="av-comissao-fields" style="display:none">
+        <div class="grid2" style="gap:8px;margin-bottom:8px">
+          <div>
+            <label class="form-label">Tipo</label>
+            <select class="sel" id="av-comis-tipo" style="width:100%" onchange="calcAvComissao()">
+              <option value="percent">Percentual (%)</option>
+              <option value="fixo">Valor fixo (R$)</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Valor</label>
+            <input class="ti" id="av-comis-val" type="number" style="width:100%" placeholder="Ex: 10 para 10%" oninput="calcAvComissao()"/>
+          </div>
+        </div>
+        <div class="grid2" style="gap:8px">
+          <div>
+            <label class="form-label">Prazo para pagar comissão</label>
+            <select class="sel" id="av-comis-prazo" style="width:100%">
+              <option value="7">7 dias após recebimento</option>
+              <option value="15">15 dias após recebimento</option>
+              <option value="30">30 dias após recebimento</option>
+              <option value="custom">Data específica</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Status da comissão</label>
+            <select class="sel" id="av-comis-status" style="width:100%">
+              <option value="pendente">⏳ Pendente</option>
+              <option value="pago">✓ Pago</option>
+              <option value="cancelado">✗ Cancelado</option>
+            </select>
+          </div>
+        </div>
+        <div id="av-comis-preview" style="font-size:11px;color:var(--bl);background:var(--bl-bg);border:1px solid var(--bl-bd);border-radius:var(--rs);padding:6px 10px;margin-top:8px"></div>
+      </div>
     </div>
 
     <div class="form-actions">
       <button class="ghost" onclick="closeModal('modal-avulso')">Cancelar</button>
       <button class="go" onclick="saveAvulso()">Criar venda avulsa</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: Metas do cliente -->
+<div class="modal-bg" id="modal-metas-cliente">
+  <div class="modal" style="width:460px">
+    <div class="modal-hd"><div class="modal-title">🎯 Definir metas do cliente</div><button class="modal-close" onclick="closeModal('modal-metas-cliente')">×</button></div>
+    <div style="font-size:12px;color:var(--mu);margin-bottom:12px">Metas mensais para acompanhamento dos resultados do cliente.</div>
+    <div class="grid2" style="gap:10px">
+      <div><label class="form-label">Meta de faturamento (R$)</label><input class="ti" id="meta-cli-fat" type="number" style="width:100%" placeholder="Ex: 50000"/></div>
+      <div><label class="form-label">Meta de leads</label><input class="ti" id="meta-cli-leads" type="number" style="width:100%" placeholder="Ex: 100"/></div>
+      <div><label class="form-label">Meta de agendamentos</label><input class="ti" id="meta-cli-agend" type="number" style="width:100%" placeholder="Ex: 40"/></div>
+      <div><label class="form-label">Meta de pacientes</label><input class="ti" id="meta-cli-pac" type="number" style="width:100%" placeholder="Ex: 30"/></div>
+      <div><label class="form-label">Meta ticket médio (R$)</label><input class="ti" id="meta-cli-ticket" type="number" style="width:100%" placeholder="Ex: 350"/></div>
+    </div>
+    <div class="form-actions"><button class="ghost" onclick="closeModal('modal-metas-cliente')">Cancelar</button><button class="go" onclick="saveMetasCliente()">Salvar metas</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Nova reunião -->
+<div class="modal-bg" id="modal-reuniao">
+  <div class="modal" style="width:500px">
+    <div class="modal-hd"><div class="modal-title">📝 Registrar reunião</div><button class="modal-close" onclick="closeModal('modal-reuniao')">×</button></div>
+    <div class="form-row"><label class="form-label">Título / assunto</label><input class="ti" id="reu-titulo" style="width:100%" placeholder="Ex: Reunião de alinhamento mensal"/></div>
+    <div class="grid2" style="gap:10px">
+      <div><label class="form-label">Data</label><input class="ti" type="date" id="reu-data" style="width:100%"/></div>
+      <div><label class="form-label">Participantes</label><input class="ti" id="reu-participantes" style="width:100%" placeholder="Ex: Eliabe, Duda, Dr. João"/></div>
+    </div>
+    <div class="form-row"><label class="form-label">Pauta</label><textarea class="ta" id="reu-pauta" style="min-height:60px;width:100%" placeholder="O que foi discutido..."></textarea></div>
+    <div class="form-row"><label class="form-label">Decisões tomadas</label><textarea class="ta" id="reu-decisoes" style="min-height:60px;width:100%" placeholder="O que foi decidido..."></textarea></div>
+    <div class="form-row"><label class="form-label">Próximos passos</label><textarea class="ta" id="reu-prox" style="min-height:50px;width:100%" placeholder="Ações que precisam acontecer..."></textarea></div>
+    <div class="form-actions"><button class="ghost" onclick="closeModal('modal-reuniao')">Cancelar</button><button class="go" onclick="saveReuniao()">Salvar reunião</button></div>
   </div>
 </div>
 
@@ -2160,7 +2236,7 @@ function fixS(s){
   // Fix colaboradores
   if(s.colaboradores){
     s.colaboradores.forEach(c=>{
-      if(!c.taskIds)c.taskIds=[];
+      if(!c.taskIds)c.taskIds=[];if(!c.reunioes)c.reunioes=[];if(!c.metas)c.metas={};
       else if(!Array.isArray(c.taskIds))c.taskIds=fbArr(c.taskIds);
       if(!c.id)c.id=uid();
       if(c.isAdm===undefined)c.isAdm=false;
@@ -2998,6 +3074,23 @@ window.toggleAvParcela=()=>{
   if(isParc)calcAvParcela();
 };
 
+window.toggleAvComissao=()=>{
+  const on=document.getElementById('av-tem-comissao').checked;
+  document.getElementById('av-comissao-fields').style.display=on?'block':'none';
+  if(on)calcAvComissao();
+};
+
+window.calcAvComissao=()=>{
+  const tipo=document.getElementById('av-comis-tipo')?.value||'percent';
+  const val=parseFloat(document.getElementById('av-comis-val')?.value)||0;
+  const totalVenda=parseFloat(document.getElementById('av-valor')?.value)||0;
+  const comisValor=tipo==='percent'?Math.round(totalVenda*val/100*100)/100:val;
+  const prev=document.getElementById('av-comis-preview');
+  if(prev&&val>0&&totalVenda>0){
+    prev.textContent='Comissão: R$ '+comisValor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+(tipo==='percent'?' ('+val+'% de R$ '+totalVenda.toLocaleString('pt-BR')+')':'');
+  } else if(prev){prev.textContent='';}
+};
+
 window.calcAvCustos=()=>{
   const val=parseFloat(document.getElementById('av-valor').value)||0;
   const linkbio=parseFloat(document.getElementById('av-c-linkbio')?.value)||0;
@@ -3036,7 +3129,9 @@ window.openAvulsoModal=(id)=>{
   if(cliSel)cliSel.innerHTML=(S.clients||[]).filter(c=>c.active!==false).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');
   // Reset fields
   if(!id){
-    ['av-cli-nome','av-cli-tel','av-cli-email','av-cli-seg','av-desc','av-valor','av-cartao','av-c-linkbio','av-c-trafego','av-c-gmn','av-c-freelancer'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['av-cli-nome','av-cli-tel','av-cli-email','av-cli-seg','av-desc','av-valor','av-cartao','av-c-linkbio','av-c-trafego','av-c-gmn','av-c-freelancer','av-comis-val'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    const tcEl=document.getElementById('av-tem-comissao');if(tcEl)tcEl.checked=false;
+    const cfEl=document.getElementById('av-comissao-fields');if(cfEl)cfEl.style.display='none';
     document.getElementById('av-prazo').value='';
     document.getElementById('av-data-pag').value='';
     document.getElementById('av-parcela-block').style.display='none';
@@ -3065,6 +3160,13 @@ window.saveAvulso=()=>{
   const desc=document.getElementById('av-desc').value.trim();
   const valor=parseFloat(document.getElementById('av-valor').value)||0;
   const forma=document.getElementById('av-forma').value;
+  // Comissão
+  const temComissao=document.getElementById('av-tem-comissao')?.checked||false;
+  const comisTipo=document.getElementById('av-comis-tipo')?.value||'percent';
+  const comisValRaw=parseFloat(document.getElementById('av-comis-val')?.value)||0;
+  const comisValor=temComissao?(comisTipo==='percent'?Math.round(valor*comisValRaw/100*100)/100:comisValRaw):0;
+  const comisPrazo=parseInt(document.getElementById('av-comis-prazo')?.value)||15;
+  const comisStatus=document.getElementById('av-comis-status')?.value||'pendente';
   const custosAv={
     linkbio:parseFloat(document.getElementById('av-c-linkbio')?.value)||0,
     trafego:parseFloat(document.getElementById('av-c-trafego')?.value)||0,
@@ -3100,6 +3202,15 @@ window.saveAvulso=()=>{
   const avId=_avCtx||uid();
   const caixaAv=valor*0.1;
   const lucroAv=valor-totalCustoAv-caixaAv;
+  // Calculate comissão due date
+  let comisDataVenc='';
+  if(temComissao&&dataPag){
+    const d=new Date(dataPag+'T12:00');d.setDate(d.getDate()+comisPrazo);
+    comisDataVenc=d.toISOString().split('T')[0];
+  } else if(temComissao){
+    const d=new Date();d.setDate(d.getDate()+comisPrazo);
+    comisDataVenc=d.toISOString().split('T')[0];
+  }
   const av={
     id:avId,clienteNome,clienteTel,clienteEmail,clienteSeg,clienteExistId,
     servico,desc,valor,forma,prazo,resp,dataPag,cartao,
@@ -3107,6 +3218,7 @@ window.saveAvulso=()=>{
     status:'aberto',
     parcelado:isParc,nParc:isParc?nParc:1,
     custos:custosAv,totalCusto:totalCustoAv,caixa:caixaAv,lucro:lucroAv,
+    comissao:temComissao?{resp,valor:comisValor,tipo:comisTipo,prazo:comisPrazo,venc:comisDataVenc,status:comisStatus}:null,
     criadoEm:Date.now(),taskIds:[]
   };
 
@@ -3116,6 +3228,14 @@ window.saveAvulso=()=>{
   const servicoLabel=AVULSO_SERVICO_LABEL[servico]||servico;
   S.tasks[taskId]={id:taskId,txt:'[Avulso] '+clienteNome+' — '+servicoLabel+(prazo?' · Entrega: '+new Date(prazo+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}):''),r:resp,done:false,urgent:false,note:desc,prazo};
   av.taskIds=[taskId];
+  // Create comissão payment task in calendar
+  if(temComissao&&comisValor>0&&comisDataVenc){
+    const comisTaskId=uid();
+    S.tasks[comisTaskId]={id:comisTaskId,txt:'💰 Pagar comissão — '+clienteNome+' ('+servicoLabel+') · R$ '+comisValor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}),r:resp,done:comisStatus==='pago',urgent:false,note:'Comissão da venda avulsa. Prazo: '+comisPrazo+' dias.',prazo:comisDataVenc};
+    av.taskIds.push(comisTaskId);
+    if(!S.finTasks)S.finTasks=[];
+    S.finTasks.push(comisTaskId);
+  }
 
   // Add to fin if already received
   if(_avStatus==='ok'&&valor>0){
@@ -3517,6 +3637,59 @@ window.registrarPagamentoFolha=()=>{
   showToast('Use o botão "✓ Registrar pagamento" em cada colaborador individualmente.');
 };
 
+// ── METAS DO CLIENTE ──
+let _metasCliCtx=null;
+window.openMetasClienteModal=(i)=>{
+  _metasCliCtx=i;
+  const c=S.clients[i];if(!c)return;
+  const m=c.metas||{};
+  ['fat','leads','agend','pac','ticket'].forEach(k=>{
+    const el=document.getElementById('meta-cli-'+k);
+    if(el)el.value=m[k]||'';
+  });
+  openModal('modal-metas-cliente');
+};
+window.saveMetasCliente=()=>{
+  const c=S.clients[_metasCliCtx];if(!c)return;
+  if(!c.metas)c.metas={};
+  ['fat','leads','agend','pac','ticket'].forEach(k=>{
+    const v=parseFloat(document.getElementById('meta-cli-'+k)?.value)||0;
+    if(v>0)c.metas[k]=v;else delete c.metas[k];
+  });
+  dbW('clients',S.clients);
+  closeModal('modal-metas-cliente');
+  renderGestao();
+  showToast('✓ Metas salvas para '+c.name);
+};
+
+// ── REUNIÕES ──
+let _reuCliCtx=null;
+window.openReuniaoModal=(i)=>{
+  _reuCliCtx=i;
+  ['reu-titulo','reu-participantes','reu-pauta','reu-decisoes','reu-prox'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('reu-data').value=new Date().toISOString().split('T')[0];
+  openModal('modal-reuniao');
+};
+window.saveReuniao=()=>{
+  const c=S.clients[_reuCliCtx];if(!c)return;
+  const titulo=document.getElementById('reu-titulo').value.trim();
+  if(!titulo){showToast('Informe o título da reunião');return;}
+  const data=document.getElementById('reu-data').value;
+  const participantes=document.getElementById('reu-participantes').value.trim();
+  const pauta=document.getElementById('reu-pauta').value.trim();
+  const decisoes=document.getElementById('reu-decisoes').value.trim();
+  const proxPassos=document.getElementById('reu-prox').value.trim();
+  if(!c.reunioes)c.reunioes=[];
+  c.reunioes.push({id:uid(),titulo,data,participantes,pauta,decisoes,proxPassos,ts:data?new Date(data+'T12:00').getTime():Date.now()});
+  dbW('clients',S.clients);
+  closeModal('modal-reuniao');
+  renderGestao();
+  feedLog('📝','Reunião registrada',c.name+' — '+titulo);
+  showToast('✓ Reunião registrada — '+c.name);
+};
+
 window.forceMonthlyRecurrence=()=>{
   showConfirm({icon:'🔄',title:'Forçar recorrência mensal?',
     msg:'Gera receitas e tarefas do mês atual para todos os clientes ativos. Use apenas se a recorrência automática não rodou.',
@@ -3590,7 +3763,7 @@ function runMonthlyRecurrence(mes){
       if(alreadyHas)return;
       const taskId=uid();
       S.tasks[taskId]={id:taskId,txt:cfg.txt,r:cfg.resp||'Todos',done:false,urgent:false,note:cfg.desc||''};
-      if(!c.taskIds)c.taskIds=[];
+      if(!c.taskIds)c.taskIds=[];if(!c.reunioes)c.reunioes=[];if(!c.metas)c.metas={};
       c.taskIds.push(taskId);
       changed=true;
     });
@@ -4323,6 +4496,10 @@ function renderGestaoChips(){
       <button class="cl-tab${activeGestaoTab==='tarefas'?' on':''}" onclick="switchGestaoTab('tarefas')">Tarefas (${ids.length})</button>
       <button class="cl-tab${activeGestaoTab==='instagram'?' on':''}" onclick="switchGestaoTab('instagram')">📱 Instagram</button>
       <button class="cl-tab${activeGestaoTab==='indicadores'?' on':''}" onclick="switchGestaoTab('indicadores')">📈 Indicadores</button>
+      <button class="cl-tab${activeGestaoTab==='metas'?' on':''}" onclick="switchGestaoTab('metas')">🎯 Metas</button>
+      <button class="cl-tab${activeGestaoTab==='reunioes'?' on':''}" onclick="switchGestaoTab('reunioes')">📝 Reuniões</button>
+      <button class="cl-tab${activeGestaoTab==='metas'?' on':''}" onclick="switchGestaoTab('metas')">🎯 Metas</button>
+      <button class="cl-tab${activeGestaoTab==='reunioes'?' on':''}" onclick="switchGestaoTab('reunioes')">📝 Reuniões</button>
       <button class="cl-tab${activeGestaoTab==='historico'?' on':''}" onclick="switchGestaoTab('historico')">Histórico (${hist.length})</button>
     </div>
 
@@ -4491,6 +4668,62 @@ function renderGestaoChips(){
             +'</tbody></table></div>';
         })()}
       </div>
+    </div>
+
+    <!-- METAS DO CLIENTE -->
+    <div class="cl-tab-content${activeGestaoTab==='metas'?' on':''}" style="padding:4px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em">🎯 Metas mensais</div>
+        <button class="c-btn" style="font-size:11px;padding:4px 10px" onclick="openMetasClienteModal(${activeGestaoClient})">✏ Editar metas</button>
+      </div>
+      ${(()=>{
+        const metas=c.metas||{};
+        const last=(c.indicadores||[]).slice().sort((a,b)=>b.ts-a.ts)[0]||{};
+        const campos=[
+          {key:'fat',label:'Faturamento',prefix:'R$ ',val:last.fat,meta:metas.fat},
+          {key:'leads',label:'Leads',prefix:'',val:last.leads,meta:metas.leads},
+          {key:'agend',label:'Agendamentos',prefix:'',val:last.agend,meta:metas.agend},
+          {key:'pac',label:'Pacientes',prefix:'',val:last.pac,meta:metas.pac},
+          {key:'ticket',label:'Ticket médio',prefix:'R$ ',val:last.ticket,meta:metas.ticket},
+        ];
+        if(!Object.keys(metas).length)return '<div class="empty">Nenhuma meta definida. Clique em "Editar metas".</div>';
+        return '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">'
+          +campos.filter(m=>m.meta).map(m=>{
+            const cur=parseFloat(m.val)||0,meta=parseFloat(m.meta)||0;
+            const pct=meta>0?Math.min(100,Math.round(cur/meta*100)):0;
+            const cor=pct>=100?'var(--gn)':pct>=70?'var(--bl)':pct>=40?'var(--am)':'var(--rd)';
+            return '<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px">'
+              +'<div style="font-size:11px;color:var(--mu);margin-bottom:4px">'+m.label+'</div>'
+              +'<div style="font-size:20px;font-weight:700;color:'+cor+';font-family:DM Mono,monospace">'+pct+'%</div>'
+              +'<div style="font-size:11px;color:var(--mu);margin:3px 0">'+m.prefix+cur.toLocaleString('pt-BR')+' / '+m.prefix+meta.toLocaleString('pt-BR')+'</div>'
+              +'<div style="background:var(--bd);border-radius:4px;height:5px"><div style="background:'+cor+';border-radius:4px;height:5px;width:'+pct+'%"></div></div>'
+              +'</div>';
+          }).join('')+'</div>';
+      })()}
+    </div>
+
+    <!-- REUNIÕES -->
+    <div class="cl-tab-content${activeGestaoTab==='reunioes'?' on':''}" style="padding:4px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em">📝 Histórico de reuniões</div>
+        <button class="c-btn" style="font-size:11px;padding:4px 10px" onclick="openReuniaoModal(${activeGestaoClient})">+ Nova reunião</button>
+      </div>
+      ${(()=>{
+        const reunioes=(c.reunioes||[]).slice().sort((a,b)=>b.ts-a.ts);
+        if(!reunioes.length)return '<div class="empty">Nenhuma reunião registrada ainda.</div>';
+        return reunioes.map(r=>{
+          const d=new Date(r.ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit'});
+          return '<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:10px">'
+            +'<div style="display:flex;justify-content:space-between;margin-bottom:8px">'
+            +'<div style="font-size:13px;font-weight:600">'+r.titulo+'</div>'
+            +'<div style="font-size:11px;color:var(--mu)">'+d+(r.participantes?' · '+r.participantes:'')+'</div>'
+            +'</div>'
+            +(r.pauta?'<div style="font-size:12px;color:var(--mu);margin-bottom:4px"><b>Pauta:</b> '+r.pauta+'</div>':'')
+            +(r.decisoes?'<div style="font-size:12px;color:var(--tx);margin-bottom:4px"><b>Decisões:</b> '+r.decisoes+'</div>':'')
+            +(r.proxPassos?'<div style="font-size:12px;color:var(--bl)"><b>→ Próximos passos:</b> '+r.proxPassos+'</div>':'')
+            +'</div>';
+        }).join('');
+      })()}
     </div>
 
     <!-- TAREFAS -->
@@ -4737,11 +4970,16 @@ window.saveObsField=()=>{
 };
 
 window.addGestaoTask=()=>{
-  const txt=document.getElementById('gst-new-task').value.trim();
-  const r=document.getElementById('gst-new-resp').value;
-  if(!txt)return;
+  const inp=document.getElementById('gst-new-task');
+  const respEl=document.getElementById('gst-new-resp');
+  const txt=inp?.value.trim()||'';
+  const r=respEl?.value||'Todos';
+  if(!txt){showToast('Digite o nome da tarefa');return;}
+  if(activeGestaoClient<0||!S.clients[activeGestaoClient]){showToast('Selecione um cliente');return;}
   const id=uid();S.tasks[id]={id,txt,r,done:false,urgent:false,note:''};
+  if(!S.clients[activeGestaoClient].taskIds)S.clients[activeGestaoClient].taskIds=[];
   S.clients[activeGestaoClient].taskIds.push(id);
+  if(inp)inp.value='';
   dbWMulti({tasks:S.tasks,clients:S.clients});
   renderGestao();renderOverview();
 };
@@ -6768,8 +7006,8 @@ function renderTplTarefasList(){
     +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].fase=this.value">'+faseOpts.replace('value="'+t.fase+'"','value="'+t.fase+'" selected')+'</select>'
     +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].cat=this.value">'+catOpts.replace('value="'+t.cat+'"','value="'+t.cat+'" selected')+'</select>'
     +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].resp=this.value"><option value="Todos">Todos</option>'+colabOpts+'</select>'
-    +'<div style="display:flex;align-items:center;gap:4px"><input class="ti" type="number" style="font-size:11px;text-align:center;width:55px" placeholder="0" title="Dias após início do contrato para calcular o prazo automaticamente" value="'+(t.diasAposInicio||0)+'" oninput="_tplTarefas['+i+'].diasAposInicio=parseInt(this.value)||0"/><span style="font-size:10px;color:var(--mu);white-space:nowrap">dias após<br>início</span></div>'
-    +'<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--mu);cursor:pointer;white-space:nowrap"><input type="checkbox"'+(t.urgente?' checked':'')+' onchange="_tplTarefas['+i+'].urgente=this.checked"/> Urgente</label>'
+    +'<div style="display:flex;align-items:center;gap:6px;background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 10px"><input class="ti" type="number" style="font-size:12px;text-align:center;width:52px;padding:3px 6px" placeholder="0" title="Dias após início do contrato para calcular o prazo automaticamente" value="'+(t.diasAposInicio||0)+'" oninput="_tplTarefas['+i+'].diasAposInicio=parseInt(this.value)||0"/><span style="font-size:11px;color:var(--mu);white-space:nowrap">dias após início</span></div>'
+    +'<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--mu);cursor:pointer;background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 10px"><input type="checkbox"'+(t.urgente?' checked':'')+' onchange="_tplTarefas['+i+'].urgente=this.checked"/> Urgente</label>'
     +'</div>'
     +'<div style="margin-top:6px"><input class="ti" style="width:100%;font-size:11px" placeholder="Instrução / detalhe (opcional)..." value="'+escHtml(t.desc||'')+'" oninput="_tplTarefas['+i+'].desc=this.value"/></div>'
     +'</div>'
