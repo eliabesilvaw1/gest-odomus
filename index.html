@@ -1329,7 +1329,7 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
 
 <!-- MODAL: Despesa operacional -->
 <div class="modal-bg" id="modal-desp">
-  <div class="modal" style="width:440px">
+  <div class="modal" style="width:480px;max-height:90vh;overflow-y:auto">
     <div class="modal-hd"><div class="modal-title" id="desp-modal-title">Nova despesa operacional</div><button class="modal-close" onclick="closeModal('modal-desp')">×</button></div>
     <div class="form-row"><label class="form-label">Descrição</label><input class="ti" id="desp-desc" style="width:100%" placeholder="Ex: Conta de energia elétrica"/></div>
     <div class="form-row"><label class="form-label">Categoria</label>
@@ -1347,16 +1347,48 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
         <option value="outro">Outro</option>
       </select>
     </div>
-    <div class="form-row"><label class="form-label">Descrição detalhada <span style="color:var(--mu);font-weight:400">(opcional — para controle interno)</span></label>
+    <div class="form-row"><label class="form-label">Descrição detalhada <span style="color:var(--mu);font-weight:400">(opcional)</span></label>
       <input class="ti" id="desp-nome-detalhe" style="width:100%" placeholder="Ex: Edição vídeo Clínica Ana — João Designer"/>
     </div>
     <div class="grid2" style="gap:10px">
-      <div class="form-row" style="margin-bottom:0"><label class="form-label">Valor (R$)</label><input class="ti" id="desp-val" style="width:100%" placeholder="Ex: 200"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Valor total (R$)</label><input class="ti" id="desp-val" style="width:100%" placeholder="Ex: 500" oninput="calcDespParcela()"/></div>
       <div class="form-row" style="margin-bottom:0"><label class="form-label">Mês de referência</label>
         <select class="sel" id="desp-mes" style="width:100%"></select>
       </div>
     </div>
-    <div class="form-row" style="margin-top:12px"><label class="form-label">Status</label>
+    <!-- PARCELAMENTO -->
+    <div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px;margin-top:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:500;color:var(--tx)">💳 Parcelamento</div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="desp-parcelado" style="accent-color:var(--bl)" onchange="toggleDespParcela()"/> Parcelado
+        </label>
+      </div>
+      <div id="desp-parcela-fields" style="display:none">
+        <div class="grid2" style="gap:10px;margin-bottom:8px">
+          <div><label class="form-label">Nº de parcelas</label>
+            <select class="sel" id="desp-nparc" style="width:100%" onchange="calcDespParcela()">
+              <option value="2">2x</option><option value="3">3x</option><option value="4">4x</option>
+              <option value="5">5x</option><option value="6">6x</option><option value="8">8x</option>
+              <option value="10">10x</option><option value="12">12x</option>
+            </select>
+          </div>
+          <div><label class="form-label">Forma de pagamento</label>
+            <select class="sel" id="desp-forma-parc" style="width:100%">
+              <option value="cartao_credito">Cartão de crédito</option>
+              <option value="pix_parcelado">Pix parcelado</option>
+              <option value="boleto">Boleto parcelado</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom:8px"><label class="form-label">Cartão utilizado (opcional)</label>
+          <input class="ti" id="desp-cartao" style="width:100%" placeholder="Ex: Nubank Eliabe, Inter Empresa..."/>
+        </div>
+        <div id="desp-parcela-preview" style="font-size:11px;color:var(--bl);background:var(--bl-bg);border:1px solid var(--bl-bd);border-radius:var(--rs);padding:6px 10px"></div>
+      </div>
+    </div>
+    <!-- STATUS -->
+    <div class="form-row" style="margin-top:12px"><label class="form-label">Status da 1ª parcela</label>
       <div style="display:flex;gap:8px;margin-top:6px">
         <button type="button" class="st-btn" id="desp-st-pend" onclick="setDespStatus('pend')">⏳ Pendente</button>
         <button type="button" class="st-btn" id="desp-st-ok" onclick="setDespStatus('ok')">✓ Pago</button>
@@ -1365,7 +1397,7 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
     <div class="form-row" id="desp-datapag-row" style="display:none"><label class="form-label">Data de pagamento</label><input class="ti" type="date" id="desp-datapag" style="width:100%"/></div>
     <div class="form-row"><label class="form-label">Repetir todo mês?</label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--tx);margin-top:6px">
-        <input type="checkbox" id="desp-recorrente" style="accent-color:var(--gn);width:16px;height:16px"/> Despesa fixa mensal
+        <input type="checkbox" id="desp-recorrente" style="accent-color:var(--gn);width:16px;height:16px" onchange="if(this.checked)document.getElementById('desp-parcelado').checked=false,toggleDespParcela()"/> Despesa fixa mensal
       </label>
     </div>
     <div class="form-actions"><button class="ghost" onclick="closeModal('modal-desp')">Cancelar</button><button class="go" onclick="saveDesp()">Salvar despesa</button></div>
@@ -4715,6 +4747,8 @@ function renderFinanceiro(){
       const isPago=d.status==='ok';
       const datFmt=d.dataPag?new Date(d.dataPag+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit'}):'-';
       const rec=d.recorrente?'<span style="font-size:9px;color:var(--mu);margin-left:4px;background:var(--sf3);padding:1px 5px;border-radius:4px">mensal</span>':'';
+      const parcBadge=d.parcelado?'<span style="font-size:9px;color:var(--bl);margin-left:4px;background:var(--bl-bg);border:1px solid var(--bl-bd);padding:1px 5px;border-radius:4px">'+d.parcLabel+'</span>':'';
+      const cartaoBadge=d.cartao?'<span style="font-size:9px;color:var(--mu);margin-left:4px">'+d.cartao+'</span>':'';
       const detalhe=d.detalhe?('<div style="font-size:10px;color:var(--mu2);margin-top:2px">↳ '+d.detalhe+'</div>'):'';
       const catLbl=catMap[d.cat]||d.cat;
       const catCls=catClass[d.cat]||'desp-cat-outro';
@@ -4961,6 +4995,21 @@ window.setDespStatus=(st)=>{
   document.getElementById('desp-datapag-row').style.display=st==='ok'?'block':'none';
 };
 
+window.toggleDespParcela=()=>{
+  const on=document.getElementById('desp-parcelado').checked;
+  document.getElementById('desp-parcela-fields').style.display=on?'block':'none';
+  if(on)calcDespParcela();
+};
+
+window.calcDespParcela=()=>{
+  const val=parseFloat(document.getElementById('desp-val').value)||0;
+  const n=parseInt(document.getElementById('desp-nparc')?.value)||2;
+  const prev=document.getElementById('desp-parcela-preview');
+  if(!prev||!val)return;
+  const parcVal=val/n;
+  prev.textContent=n+'x de R$ '+parcVal.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' — Total: R$ '+val.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+};
+
 window.saveDesp=()=>{
   const desc=document.getElementById('desp-desc').value.trim();
   const cat=document.getElementById('desp-cat').value;
@@ -4969,14 +5018,48 @@ window.saveDesp=()=>{
   const mes=document.getElementById('desp-mes')?.value||getFinMes();
   const dataPag=despStatus==='ok'?(document.getElementById('desp-datapag').value||new Date().toISOString().split('T')[0]):'';
   const recorrente=document.getElementById('desp-recorrente').checked;
-  if(!desc||!val)return;
+  const parcelado=document.getElementById('desp-parcelado').checked;
+  const nParc=parcelado?parseInt(document.getElementById('desp-nparc').value)||2:1;
+  const formaParc=parcelado?document.getElementById('desp-forma-parc').value:'';
+  const cartao=parcelado?document.getElementById('desp-cartao').value.trim():'';
+  if(!desc||!val){showToast('Informe descrição e valor');return;}
   if(!S.despesas)S.despesas=[];
-  // If recurring, add for current and future months up to Dec
+
+  if(parcelado&&nParc>1){
+    // Create one entry per installment in consecutive months
+    const parcVal=Math.round((val/nParc)*100)/100;
+    const [y,m]=mes.split('-').map(Number);
+    for(let p=0;p<nParc;p++){
+      let mo=m+p;let yr=y;
+      while(mo>12){mo-=12;yr++;}
+      const mesStr=yr+'-'+String(mo).padStart(2,'0');
+      const parcLabel=(p+1)+'/'+nParc;
+      S.despesas.push({
+        id:uid(),desc,cat,detalhe,
+        val:parcVal,
+        mes:mesStr,
+        status:p===0?despStatus:'pend',
+        dataPag:p===0?dataPag:'',
+        pagoPor:currentColab?.name||'',
+        recorrente:false,
+        parcelado:true,nParc,parcAtual:p+1,parcLabel,
+        formaParc,cartao,
+        valTotal:val
+      });
+    }
+    dbW('despesas',S.despesas);
+    closeModal('modal-desp');
+    resetDespModal();
+    renderFinanceiro();
+    showToast('✓ '+nParc+'x de R$ '+Math.round(val/nParc).toLocaleString('pt-BR')+' criadas ('+mes+' a '+y+'-'+String(m+nParc-1<=12?m+nParc-1:(m+nParc-1)-12).padStart(2,'0')+')');
+    return;
+  }
+
+  // Não parcelado
   if(recorrente){
     const [y,m]=mes.split('-').map(Number);
     for(let mo=m;mo<=12;mo++){
-      const mesStr=`${y}-${String(mo).padStart(2,'0')}`;
-      // Don't duplicate
+      const mesStr=y+'-'+String(mo).padStart(2,'0');
       const exists=S.despesas.some(d=>d.desc===desc&&d.mes===mesStr&&d.recorrente);
       if(!exists)S.despesas.push({id:uid(),desc,cat,detalhe,val,mes:mesStr,status:mo===m?despStatus:'pend',dataPag:mo===m?dataPag:'',pagoPor:currentColab?.name||'',recorrente:true});
     }
@@ -4985,12 +5068,17 @@ window.saveDesp=()=>{
   }
   dbW('despesas',S.despesas);
   closeModal('modal-desp');
-  document.getElementById('desp-desc').value='';
-  document.getElementById('desp-val').value='';
-  document.getElementById('desp-recorrente').checked=false;
+  resetDespModal();
   renderFinanceiro();
-  showToast(recorrente?`✓ Despesa recorrente adicionada até Dezembro`:'✓ Despesa adicionada');
+  showToast(recorrente?'✓ Despesa recorrente adicionada até Dezembro':'✓ Despesa adicionada');
 };
+
+function resetDespModal(){
+  ['desp-desc','desp-val','desp-cartao'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const rc=document.getElementById('desp-recorrente');if(rc)rc.checked=false;
+  const pc=document.getElementById('desp-parcelado');if(pc)pc.checked=false;
+  const pf=document.getElementById('desp-parcela-fields');if(pf)pf.style.display='none';
+}
 
 window.pagarDesp=(i)=>{
   const today=new Date().toISOString().split('T')[0];
