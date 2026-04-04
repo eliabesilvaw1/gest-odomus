@@ -595,7 +595,7 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
 
     <!-- OVERVIEW -->
     <div class="sec on" id="sec-overview">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="ghost" onclick="openWeeklySummary()" style="font-size:11px;padding:4px 12px">📊 Ver resumo semanal</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><button class="ghost" onclick="openWeeklySummary()" style="font-size:11px;padding:4px 12px">📊 Ver resumo semanal</button><button class="ghost" onclick="openBackupPanel()" style="font-size:11px;padding:4px 12px;color:var(--gn);border-color:var(--gn-bd)">🛡 Backup & Segurança</button></div>
       <div class="metrics" style="grid-template-columns:repeat(5,minmax(0,1fr))">
         <div class="metric g" onclick="openOvPanel('clientes')" title="Ver clientes ativos"><div class="m-label">Clientes ativos</div><div class="m-val" id="mv-cl">—</div><div class="m-sub">clique para ver →</div></div>
         <div class="metric r" onclick="openOvPanel('alertas')" title="Ver alertas urgentes"><div class="m-label">Alertas urgentes</div><div class="m-val" id="mv-al">—</div><div class="m-sub">clique para ver →</div></div>
@@ -840,6 +840,20 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
 
   </div>
 </main>
+
+<!-- MODAL: Backup & Segurança -->
+<div class="modal-bg" id="modal-backup">
+  <div class="modal" style="width:540px;max-height:85vh;overflow-y:auto">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-title">🛡 Backup & Segurança</div>
+        <div style="font-size:11px;color:var(--mu);margin-top:2px" id="backup-last-info"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-backup')">×</button>
+    </div>
+    <div id="backup-body"></div>
+  </div>
+</div>
 
 <!-- MODAL: Resumo Semanal -->
 <div class="modal-bg" id="modal-weekly" style="align-items:flex-start;padding-top:40px">
@@ -1805,7 +1819,7 @@ function showApp(){
   if(sidebar)sidebar.style.display='flex';
   if(content)content.style.display='block';
   applyAccessControl();
-  setTimeout(()=>{renderAll();checkMonthlyRecurrence();checkWeeklySummary();},50);
+  setTimeout(()=>{renderAll();checkMonthlyRecurrence();checkWeeklySummary();checkBackupReminder();},50);
 }
 
 // ── MONTHLY RECURRENCE ──
@@ -2112,6 +2126,207 @@ window.openWeeklySummary=()=>{
   S.lastWeeklySummary=''; // force show
   showWeeklySummary();
 };
+
+// ── BACKUP & SEGURANÇA ──
+const BACKUP_KEY='domus_last_backup';
+
+function getBackupStats(){
+  if(!S)return{};
+  const clients=(S.clients||[]);
+  const tasks=Object.keys(S.tasks||{}).length;
+  const videos=(S.videos||[]).length;
+  const fin=(S.fin||[]).length;
+  const hist=clients.reduce((a,c)=>a+(c.history||[]).length,0);
+  const colabs=(S.colaboradores||[]).length;
+  // Estimate size
+  const jsonStr=JSON.stringify(S);
+  const sizeKB=Math.round(new Blob([jsonStr]).size/1024);
+  return{clients:clients.length,tasks,videos,fin,hist,colabs,sizeKB};
+}
+
+window.openBackupPanel=()=>{
+  const stats=getBackupStats();
+  const lastBackup=localStorage.getItem(BACKUP_KEY)||'';
+  const lastBackupStr=lastBackup?new Date(parseInt(lastBackup)).toLocaleString('pt-BR'):'Nunca realizado';
+
+  // Check if auto backup needed (older than 7 days)
+  const needsBackup=!lastBackup||(Date.now()-parseInt(lastBackup))>7*24*60*60*1000;
+
+  document.getElementById('backup-last-info').textContent='Último backup: '+lastBackupStr;
+
+  document.getElementById('backup-body').innerHTML=
+    // Stats card
+    '<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📊 Estado atual dos dados</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'
+    +[['Clientes',stats.clients,'var(--gn)'],['Tarefas',stats.tasks,'var(--bl)'],['Vídeos',stats.videos,'var(--pu)'],
+      ['Lançamentos fin.',stats.fin,'var(--am)'],['Colaboradores',stats.colabs,'var(--tx)'],['Tamanho',stats.sizeKB+'KB','var(--mu)']]
+    .map(([l,v,c])=>'<div style="background:var(--sf3);border-radius:var(--rs);padding:8px;text-align:center"><div style="font-size:16px;font-weight:700;color:'+c+'">'+v+'</div><div style="font-size:10px;color:var(--mu)">'+l+'</div></div>').join('')
+    +'</div></div>'
+
+    // Warning if needed
+    +(needsBackup?'<div style="background:var(--am-bg);border:1px solid var(--am-bd);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">⚠</span><div style="font-size:12px;color:var(--am)">Backup desatualizado. Recomendamos fazer backup agora.</div></div>':'')
+
+    // Export options
+    +'<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">💾 Exportar backup</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px">'
+    +'<button class="go" data-tipo="completo" onclick="exportBackup(this.dataset.tipo)" style="text-align:left;padding:10px 14px">'
+    +'<div style="font-size:13px">📦 Backup completo</div>'
+    +'<div style="font-size:11px;opacity:.7;margin-top:2px">Todos os dados: clientes, tarefas, histórico, financeiro, vídeos, templates</div>'
+    +'</button>'
+    +'<button class="ghost" data-tipo="clientes" onclick="exportBackup(this.dataset.tipo)" style="text-align:left;padding:10px 14px">'
+    +'<div style="font-size:13px">👥 Apenas clientes e histórico</div>'
+    +'<div style="font-size:11px;opacity:.7;margin-top:2px">Fichas completas, histórico e indicadores de cada cliente</div>'
+    +'</button>'
+    +'<button class="ghost" data-tipo="financeiro" onclick="exportBackup(this.dataset.tipo)" style="text-align:left;padding:10px 14px">'
+    +'<div style="font-size:13px">💰 Apenas financeiro</div>'
+    +'<div style="font-size:11px;opacity:.7;margin-top:2px">Receitas, despesas e tarefas financeiras</div>'
+    +'</button>'
+    +'</div></div>'
+
+    // Import / restore
+    +'<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">📥 Restaurar backup</div>'
+    +'<div style="font-size:11px;color:var(--mu2);margin-bottom:10px">Carregue um arquivo JSON de backup anterior. <b style="color:var(--rd)">Atenção: substitui todos os dados atuais.</b></div>'
+    +'<label style="cursor:pointer;display:inline-block;padding:7px 14px;background:var(--rd-bg);color:var(--rd);border:1px solid var(--rd-bd);border-radius:var(--rs);font-size:12px">'
+    +'📂 Selecionar arquivo de backup'
+    +'<input type="file" accept=".json" style="display:none" onchange="importBackup(this)"/>'
+    +'</label></div>'
+
+    // Firebase tips
+    +'<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">🔒 Segurança Firebase</div>'
+    +'<div style="font-size:12px;color:var(--mu);line-height:1.7">'
+    +'<div>✓ Dados salvos em tempo real no Firebase</div>'
+    +'<div>✓ Conexão criptografada (HTTPS)</div>'
+    +'<div style="color:var(--am)">⚠ Recomendado: ativar backup automático no console Firebase</div>'
+    +'<div style="color:var(--am)">⚠ Recomendado: configurar regras de segurança por usuário</div>'
+    +'<a href="https://console.firebase.google.com" target="_blank" style="color:var(--bl);font-size:11px;display:block;margin-top:6px">→ Abrir console Firebase</a>'
+    +'</div></div>';
+
+  openModal('modal-backup');
+};
+
+window.exportBackup=(tipoOrEl)=>{
+  const tipo=typeof tipoOrEl==='string'?tipoOrEl:(tipoOrEl?.dataset?.tipo||tipoOrEl);
+  if(!S)return;
+  const now=new Date();
+  const dateStr=now.toISOString().split('T')[0];
+  const timeStr=now.toTimeString().slice(0,5).replace(':','h');
+  let data={};
+  let filename='';
+
+  if(tipo==='completo'){
+    // Export everything EXCEPT base64 images to keep file size manageable
+    data={
+      exportDate:now.toISOString(),
+      exportType:'completo',
+      version:'domus-v1',
+      clients:(S.clients||[]).map(c=>({...c,ig_prints:undefined})), // exclude prints
+      tasks:S.tasks||{},
+      rotina:S.rotina||{},
+      fin:S.fin||[],
+      finTasks:S.finTasks||[],
+      despesas:S.despesas||[],
+      videos:S.videos||[],
+      colaboradores:S.colaboradores||[],
+      templates:S.templates||[],
+      cfgTasks:S.cfgTasks||[],
+      internalTasks:S.internalTasks||[],
+      funil:S.funil||[],
+      prospTasks:S.prospTasks||[],
+    };
+    filename=`domus-backup-completo-${dateStr}-${timeStr}.json`;
+  } else if(tipo==='clientes'){
+    data={
+      exportDate:now.toISOString(),
+      exportType:'clientes',
+      clients:(S.clients||[]).map(c=>({...c,ig_prints:undefined})),
+      tasks:S.tasks||{},
+    };
+    filename=`domus-backup-clientes-${dateStr}-${timeStr}.json`;
+  } else if(tipo==='financeiro'){
+    data={
+      exportDate:now.toISOString(),
+      exportType:'financeiro',
+      fin:S.fin||[],
+      finTasks:S.finTasks||[],
+      despesas:S.despesas||[],
+    };
+    filename=`domus-backup-financeiro-${dateStr}-${timeStr}.json`;
+  }
+
+  const json=JSON.stringify(data,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  // Save backup timestamp
+  localStorage.setItem(BACKUP_KEY,String(Date.now()));
+  showToast('✓ Backup exportado: '+filename);
+  openBackupPanel(); // refresh panel
+};
+
+window.importBackup=(input)=>{
+  if(!input.files[0])return;
+  const file=input.files[0];
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.exportDate||!data.exportType){
+        showToast('Arquivo inválido — não é um backup Domus');return;
+      }
+      const exportDate=new Date(data.exportDate).toLocaleString('pt-BR');
+      showConfirm({
+        icon:'⚠',
+        title:'Restaurar backup?',
+        msg:'<b>Atenção:</b> todos os dados atuais serão substituídos pelos dados do backup de <b>'+exportDate+'</b>.<br><br>Esta ação não pode ser desfeita.',
+        okLabel:'Sim, restaurar',
+        okClass:'danger',
+        onOk:()=>{
+          const writes={};
+          if(data.clients)writes.clients=data.clients;
+          if(data.tasks)writes.tasks=data.tasks;
+          if(data.rotina)writes.rotina=data.rotina;
+          if(data.fin)writes.fin=data.fin;
+          if(data.finTasks)writes.finTasks=data.finTasks;
+          if(data.despesas)writes.despesas=data.despesas;
+          if(data.videos)writes.videos=data.videos;
+          if(data.colaboradores)writes.colaboradores=data.colaboradores;
+          if(data.templates)writes.templates=data.templates;
+          if(data.cfgTasks)writes.cfgTasks=data.cfgTasks;
+          if(data.internalTasks)writes.internalTasks=data.internalTasks;
+          dbWMulti(writes);
+          closeModal('modal-backup');
+          showToast('✓ Backup restaurado com sucesso');
+          setTimeout(()=>location.reload(),1500);
+        }
+      });
+    }catch(err){
+      showToast('Erro ao ler arquivo: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+};
+
+// Auto-check backup on app load (weekly reminder)
+function checkBackupReminder(){
+  const lastBackup=localStorage.getItem(BACKUP_KEY)||'';
+  if(!lastBackup||(Date.now()-parseInt(lastBackup))>7*24*60*60*1000){
+    // Show subtle reminder after 3 seconds
+    setTimeout(()=>{
+      if(document.getElementById('modal-backup')?.classList.contains('on'))return;
+      showToast('💾 Lembrete: faça um backup dos dados esta semana');
+    },3000);
+  }
+}
 
 window.forceMonthlyRecurrence=()=>{
   showConfirm({icon:'🔄',title:'Forçar recorrência mensal?',
