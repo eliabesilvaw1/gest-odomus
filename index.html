@@ -6995,24 +6995,35 @@ function renderTplTarefasList(){
   const colabOpts=(S.colaboradores||[]).map(c=>'<option value="'+c.tag+'">'+c.tag+'</option>').join('');
   const faseOpts=TPL_FASES.map(f=>'<option value="'+f.v+'">'+f.l+'</option>').join('');
   const catOpts=TPL_CATS.map(c=>'<option value="'+c.v+'">'+c.l+'</option>').join('');
-  wrap.innerHTML=_tplTarefas.map((t,i)=>
-    '<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--rs);padding:12px;margin-bottom:8px">'
-    +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">'
-    +'<span style="font-size:11px;color:var(--mu);flex-shrink:0">#'+(i+1)+'</span>'
-    +'<input class="ti" style="flex:1;font-size:12px" placeholder="Descrição da tarefa..." value="'+escHtml(t.txt||'')+'" oninput="_tplTarefas['+i+'].txt=this.value"/>'
-    +'<button onclick="removeTplTarefa('+i+')" style="background:transparent;border:none;color:var(--rd);cursor:pointer;font-size:16px;padding:0 4px">×</button>'
-    +'</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 80px auto;gap:6px;align-items:center">'
-    +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].fase=this.value">'+faseOpts.replace('value="'+t.fase+'"','value="'+t.fase+'" selected')+'</select>'
-    +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].cat=this.value">'+catOpts.replace('value="'+t.cat+'"','value="'+t.cat+'" selected')+'</select>'
-    +'<select class="sel" style="font-size:11px" onchange="_tplTarefas['+i+'].resp=this.value"><option value="Todos">Todos</option>'+colabOpts+'</select>'
-    +'<div style="display:flex;align-items:center;gap:6px;background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 10px"><input class="ti" type="number" style="font-size:12px;text-align:center;width:52px;padding:3px 6px" placeholder="0" title="Dias após início do contrato para calcular o prazo automaticamente" value="'+(t.diasAposInicio||0)+'" oninput="_tplTarefas['+i+'].diasAposInicio=parseInt(this.value)||0"/><span style="font-size:11px;color:var(--mu);white-space:nowrap">dias após início</span></div>'
-    +'<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--mu);cursor:pointer;background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 10px"><input type="checkbox"'+(t.urgente?' checked':'')+' onchange="_tplTarefas['+i+'].urgente=this.checked"/> Urgente</label>'
-    +'</div>'
-    +'<div style="margin-top:6px"><input class="ti" style="width:100%;font-size:11px" placeholder="Instrução / detalhe (opcional)..." value="'+escHtml(t.desc||'')+'" oninput="_tplTarefas['+i+'].desc=this.value"/></div>'
-    +'</div>'
-  ).join('');
-}
+  wrap.innerHTML=_tplTarefas.map((t,i)=>{
+    const faseOptsI=TPL_FASES.map(f=>'<option value="'+f.v+'"'+(f.v===t.fase?' selected':'')+'>'+f.l+'</option>').join('');
+    const catOptsI=TPL_CATS.map(c=>'<option value="'+c.v+'"'+(c.v===t.cat?' selected':'')+'>'+c.l+'</option>').join('');
+    const respOptsI='<option value="Todos"'+((!t.resp||t.resp==='Todos')?' selected':'')+'>Todos</option>'+(S.colaboradores||[]).map(c=>'<option value="'+c.tag+'"'+(t.resp===c.tag?' selected':'')+'>'+c.tag+' — '+c.name+'</option>').join('');
+    return '<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:10px">'
+      +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">'
+      +'<span style="font-size:11px;font-weight:600;color:var(--mu);flex-shrink:0;background:var(--sf3);padding:2px 7px;border-radius:4px">#'+(i+1)+'</span>'
+      +'<input class="ti" style="flex:1;font-size:13px;font-weight:500" placeholder="Descrição da tarefa..." value="'+escHtml(t.txt||'')+'" oninput="_tplTarefas['+i+'].txt=this.value"/>'
+      +'<button onclick="removeTplTarefa('+i+')" style="background:transparent;border:none;color:var(--rd);cursor:pointer;font-size:18px;padding:0 6px;flex-shrink:0" title="Remover">×</button>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">'
+      +'<div><div style="font-size:10px;color:var(--mu);margin-bottom:3px">ETAPA</div><select class="sel" style="width:100%;font-size:12px" onchange="_tplTarefas['+i+'].fase=this.value">'+faseOptsI+'</select></div>'
+      +'<div><div style="font-size:10px;color:var(--mu);margin-bottom:3px">CATEGORIA</div><select class="sel" style="width:100%;font-size:12px" onchange="_tplTarefas['+i+'].cat=this.value">'+catOptsI+'</select></div>'
+      +'<div><div style="font-size:10px;color:var(--mu);margin-bottom:3px">RESPONSÁVEL</div><select class="sel" style="width:100%;font-size:12px" onchange="_tplTarefas['+i+'].resp=this.value">'+respOptsI+'</select></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">'
+      +'<div style="display:flex;align-items:center;gap:6px;flex:1;background:var(--sf3);border:1px solid var(--bd);border-radius:var(--rs);padding:6px 10px">'
+      +'<span style="font-size:11px;color:var(--mu)">Prazo:</span>'
+      +'<input class="ti" type="number" min="0" style="width:60px;font-size:12px;text-align:center;padding:3px 6px" placeholder="0" value="'+(t.diasAposInicio||0)+'" oninput="_tplTarefas['+i+'].diasAposInicio=parseInt(this.value)||0"/>'
+      +'<span style="font-size:11px;color:var(--mu)">dias após início do contrato</span>'
+      +'</div>'
+      +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;background:var(--sf3);border:1px solid var(--bd);border-radius:var(--rs);font-size:12px;color:var(--mu);white-space:nowrap">'
+      +'<input type="checkbox"'+(t.urgente?' checked':'')+' onchange="_tplTarefas['+i+'].urgente=this.checked" style="accent-color:var(--rd)"/> Urgente'
+      +'</label>'
+      +'</div>'
+      +'<div><div style="font-size:10px;color:var(--mu);margin-bottom:3px">INSTRUÇÃO / DETALHE (opcional)</div>'
+      +'<input class="ti" style="width:100%;font-size:12px" placeholder="Como executar, o que verificar..." value="'+escHtml(t.desc||'')+'" oninput="_tplTarefas['+i+'].desc=this.value"/></div>'
+      +'</div>';
+  }).join('');}
 
 function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 
