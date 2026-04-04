@@ -876,7 +876,10 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
     <div class="sec" id="sec-colaboradores">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div><div class="pg-title">Colaboradores</div><div class="pg-sub" style="margin-bottom:0">Defina funções e tarefas padrão por colaborador. As tarefas aparecem automaticamente nos clientes.</div></div>
-        <button class="c-btn" onclick="openColabModal()">+ Novo colaborador</button>
+        <div style="display:flex;gap:8px">
+          <button class="ghost" style="font-size:12px;padding:5px 12px;background:var(--am-bg);color:var(--am);border-color:var(--am-bd)" onclick="openFolhaPagamento()">💵 Folha de pagamento</button>
+          <button class="c-btn" onclick="openColabModal()">+ Novo colaborador</button>
+        </div>
       </div>
       <div id="colab-orphan-banner" style="display:none;background:var(--am-bg);border:1px solid var(--am-bd);border-radius:var(--r);padding:14px;margin-bottom:16px"></div>
       <div id="colab-list"></div>
@@ -1144,6 +1147,27 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
     <div class="form-actions">
       <button class="ghost" onclick="closeModal('modal-avulso')">Cancelar</button>
       <button class="go" onclick="saveAvulso()">Criar venda avulsa</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Folha de Pagamento -->
+<div class="modal-bg" id="modal-folha">
+  <div class="modal" style="width:640px;max-height:92vh;overflow-y:auto">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-title">💵 Folha de pagamento</div>
+        <div style="font-size:11px;color:var(--mu);margin-top:2px" id="folha-periodo"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select class="sel" id="folha-mes-sel" style="font-size:12px;padding:4px 8px" onchange="renderFolha()"></select>
+        <button class="modal-close" onclick="closeModal('modal-folha')">×</button>
+      </div>
+    </div>
+    <div id="folha-body"></div>
+    <div style="padding-top:12px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
+      <div id="folha-total" style="font-size:13px;font-weight:600;color:var(--tx)"></div>
+      <button class="go" onclick="registrarPagamentoFolha()">✓ Registrar pagamentos como efetuados</button>
     </div>
   </div>
 </div>
@@ -3356,6 +3380,142 @@ function getTimeAgo(ts){
   if(d<7)return d+' dia'+(d>1?'s':'')+' atrás';
   return new Date(ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
 }
+
+// ── FOLHA DE PAGAMENTO ──
+let _folhaMes='';
+
+window.openFolhaPagamento=()=>{
+  // Populate month selector
+  const sel=document.getElementById('folha-mes-sel');
+  if(sel){
+    const now=new Date();
+    const meses=[];
+    for(let i=-5;i<=0;i++){
+      const d=new Date(now.getFullYear(),now.getMonth()+i,1);
+      const val=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      const label=MESES_LABELS[d.getMonth()]+' '+d.getFullYear();
+      meses.push({val,label});
+    }
+    sel.innerHTML=meses.map(m=>'<option value="'+m.val+'"'+( m.val===_folhaMes?' selected':'')+'>'+m.label+'</option>').join('');
+    _folhaMes=_folhaMes||meses[meses.length-1].val;
+    sel.value=_folhaMes;
+    sel.onchange=()=>{_folhaMes=sel.value;renderFolha();};
+  }
+  renderFolha();
+  openModal('modal-folha');
+};
+
+window.renderFolha=()=>{
+  const mes=document.getElementById('folha-mes-sel')?.value||_folhaMes;
+  _folhaMes=mes;
+  const mesLabel=mes?new Date(mes+'-01').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'';
+  const periodoEl=document.getElementById('folha-periodo');
+  if(periodoEl)periodoEl.textContent='Referência: '+mesLabel;
+
+  const colabs=(S.colaboradores||[]).filter(c=>!c.isSocio); // sócios têm pró-labore separado
+  const body=document.getElementById('folha-body');
+  if(!body)return;
+
+  if(!colabs.length){
+    body.innerHTML='<div class="empty" style="padding:30px">Nenhum colaborador (não-sócio) cadastrado.</div>';
+    return;
+  }
+
+  // Get commissions from avulsos this month
+  const avulsosMes=(S.avulsos||[]).filter(a=>a.mes===mes&&a.pagStatus==='ok');
+  const totalVendasMes=avulsosMes.reduce((a,av)=>a+(parseFloat(av.valor)||0),0);
+
+  // Get existing prolabore payments this month for colabs
+  const prolaboreMes=(S.prolabore||[]).filter(p=>p.mes===mes);
+
+  let grandTotal=0;
+
+  body.innerHTML=colabs.map(c=>{
+    const salario=parseFloat(c.salario)||0;
+    const percComis=parseFloat(c.comissao)||0;
+
+    // Calculate commission from avulsos where this colab is responsible
+    const avulsosColab=avulsosMes.filter(av=>av.resp===c.tag);
+    const valorVendasColab=avulsosColab.reduce((a,av)=>a+(parseFloat(av.valor)||0),0);
+    const comissaoValor=percComis>0?Math.round(valorVendasColab*percComis/100*100)/100:0;
+
+    // Adiantamentos já registrados como pró-labore
+    const adiant=prolaboreMes.filter(p=>p.resp===c.tag&&p.tipo==='adiantamento').reduce((a,p)=>a+(parseFloat(p.val)||0),0);
+    const proLaboreRegistrado=prolaboreMes.filter(p=>p.resp===c.tag&&p.tipo!=='adiantamento').reduce((a,p)=>a+(parseFloat(p.val)||0),0);
+
+    const totalBruto=salario+comissaoValor;
+    const totalLiquido=Math.max(0,totalBruto-adiant-proLaboreRegistrado);
+    grandTotal+=totalLiquido;
+
+    const jaRegistrado=prolaboreMes.some(p=>p.resp===c.tag&&p.tipo==='prolabore'&&p.val===salario);
+
+    return'<div style="background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);padding:16px;margin-bottom:12px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+      +'<div style="width:36px;height:36px;border-radius:50%;background:'+(c.color||'var(--bl-bg)')+';color:'+(c.textColor||'var(--bl)')+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">'
+      +c.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()
+      +'</div>'
+      +'<div><div style="font-size:14px;font-weight:600">'+c.name+'</div>'
+      +(c.pix?'<div style="font-size:11px;color:var(--mu)">Pix: '+c.pix+(c.pixTipo?' ('+c.pixTipo+')':'')+'</div>':'<div style="font-size:11px;color:var(--am)">⚠ Sem Pix cadastrado</div>')
+      +'</div></div>'
+      +'<div style="text-align:right">'
+      +'<div style="font-size:20px;font-weight:700;color:var(--gn);font-family:DM Mono,monospace">R$ '+totalLiquido.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div>'
+      +'<div style="font-size:10px;color:var(--mu)">a pagar este mês</div>'
+      +'</div></div>'
+
+      // Breakdown
+      +'<div style="font-size:12px;border-top:1px solid var(--bd);padding-top:10px">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+      +(salario>0?'<div style="display:flex;justify-content:space-between"><span style="color:var(--mu)">Salário fixo</span><span style="font-family:DM Mono,monospace">R$ '+salario.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span></div>':'')
+      +(comissaoValor>0?'<div style="display:flex;justify-content:space-between"><span style="color:var(--mu)">Comissão ('+percComis+'%)</span><span style="color:var(--bl);font-family:DM Mono,monospace">+R$ '+comissaoValor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span></div>':'')
+      +(adiant>0?'<div style="display:flex;justify-content:space-between"><span style="color:var(--mu)">(-) Adiantamentos</span><span style="color:var(--rd);font-family:DM Mono,monospace">-R$ '+adiant.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span></div>':'')
+      +(proLaboreRegistrado>0?'<div style="display:flex;justify-content:space-between"><span style="color:var(--mu)">(-) Pró-labore já pago</span><span style="color:var(--rd);font-family:DM Mono,monospace">-R$ '+proLaboreRegistrado.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span></div>':'')
+      +(comissaoValor>0?'<div style="grid-column:span 2;font-size:10px;color:var(--mu2)">'+avulsosColab.length+' venda'+(avulsosColab.length!==1?'s':'')+' fechada'+(avulsosColab.length!==1?'s':'')+' no mês · total: R$ '+valorVendasColab.toLocaleString('pt-BR')+'</div>':'')
+      +'</div></div>'
+
+      // Actions
+      +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'
+      +(c.pix?'<button class="ghost" style="font-size:11px;padding:3px 10px" data-pix="'+c.pix+'" onclick="copyPix(this.dataset.pix)">📋 Copiar Pix</button>':'')
+      +(totalLiquido>0&&!jaRegistrado
+        ?'<button class="c-btn" style="font-size:11px;padding:3px 10px" data-colab="'+c.tag+'" data-val="'+totalLiquido+'" onclick="pagarColaborador(this.dataset.colab,parseFloat(this.dataset.val))">✓ Registrar pagamento</button>'
+        :(totalLiquido===0?'<span style="font-size:11px;color:var(--gn)">✓ Quitado este mês</span>':''))
+      +'<button class="ghost" style="font-size:11px;padding:3px 10px" onclick="openProLaboreModal()">+ Lançar adiantamento</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  const totalEl=document.getElementById('folha-total');
+  if(totalEl)totalEl.textContent='Total a pagar: R$ '+grandTotal.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+};
+
+window.copyPix=(pix)=>{
+  navigator.clipboard?.writeText(pix).then(()=>showToast('✓ Pix copiado: '+pix)).catch(()=>showToast('Pix: '+pix));
+};
+
+window.pagarColaborador=(tag,val)=>{
+  const c=(S.colaboradores||[]).find(x=>x.tag===tag);if(!c)return;
+  showConfirm({icon:'💵',title:'Registrar pagamento?',
+    msg:'Registrar pagamento de <b>R$ '+val.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</b> para <b>'+c.name+'</b>?<br><br>'+( c.pix?'Pix: <b>'+c.pix+'</b>':'⚠ Sem Pix cadastrado'),
+    okLabel:'Registrar',okClass:'safe',
+    onOk:()=>{
+      const mes=_folhaMes;
+      if(!S.prolabore)S.prolabore=[];
+      S.prolabore.push({id:uid(),resp:tag,val,data:new Date().toISOString().split('T')[0],tipo:'prolabore',obs:'Pagamento mensal — folha '+mes,mes,criadoEm:Date.now()});
+      // Register as despesa operacional
+      if(!S.despesas)S.despesas=[];
+      S.despesas.push({id:uid(),desc:'Pagamento — '+c.name,cat:'pessoal',detalhe:'Folha de pagamento '+mes,val,mes,status:'ok',dataPag:new Date().toISOString().split('T')[0],pagoPor:currentColab?.name||'',recorrente:false});
+      dbWMulti({prolabore:S.prolabore,despesas:S.despesas});
+      feedLog('💵','Pagamento registrado',c.name+' · R$ '+val.toLocaleString('pt-BR'));
+      renderFolha();
+      renderFinanceiro();
+      showToast('✓ Pagamento de '+c.name+' registrado');
+    }
+  });
+};
+
+window.registrarPagamentoFolha=()=>{
+  showToast('Use o botão "✓ Registrar pagamento" em cada colaborador individualmente.');
+};
 
 window.forceMonthlyRecurrence=()=>{
   showConfirm({icon:'🔄',title:'Forçar recorrência mensal?',
