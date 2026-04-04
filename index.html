@@ -693,6 +693,23 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
         <div class="metric" style="cursor:pointer;background:var(--sf);border:1px solid var(--bd)" onclick="openFinPanel('lucroLiquido')" title="Ver detalhes"><div class="m-label" style="color:var(--mu)">A dividir</div><div class="m-val" id="fin-liq" style="color:var(--pu)">—</div><div class="m-sub" style="color:var(--mu2)">após caixa 10% →</div></div>
         <div class="metric b" onclick="openFinPanel('socios')" title="Ver por sócio"><div class="m-label">Por sócio</div><div class="m-val" id="fin-soc">—</div><div class="m-sub">÷ sócios ativos →</div></div>
       </div>
+      <!-- DRE + PROJEÇÃO -->
+      <div class="grid2" style="margin-bottom:16px">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-head">
+            <div class="card-title"><div class="cdot cdot-g"></div>DRE — Resultado do mês</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-size:11px;color:var(--mu)" id="dre-meta-pct"></span>
+              <button class="ghost" style="font-size:11px;padding:3px 10px" onclick="openMetaModal()">🎯 Meta</button>
+            </div>
+          </div>
+          <div id="dre-body"></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-head"><div class="card-title"><div class="cdot cdot-b"></div>Projeção — próximos 3 meses</div></div>
+          <div id="projecao-body"></div>
+        </div>
+      </div>
       <!-- RECEITAS DE CLIENTES -->
       <div class="card">
         <div class="card-head">
@@ -732,6 +749,23 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
         </div>
         <div id="fin-socios"></div>
       </div>
+      <!-- PRÓ-LABORE E IMPOSTOS -->
+      <div class="grid2" style="margin-bottom:0">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-head">
+            <div class="card-title"><div class="cdot" style="background:var(--pu)"></div>Pró-labore e retiradas</div>
+            <button class="c-btn" style="font-size:11px;padding:4px 10px" onclick="openProLaboreModal()">+ Registrar</button>
+          </div>
+          <div id="prolabore-list"></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-head">
+            <div class="card-title"><div class="cdot cdot-a"></div>Impostos e provisões</div>
+            <button class="c-btn" style="font-size:11px;padding:4px 10px" onclick="openImpostoModal()">+ Registrar</button>
+          </div>
+          <div id="impostos-list"></div>
+        </div>
+      </div>
       <!-- TAREFAS FINANCEIRAS -->
       <div class="card">
         <div class="card-head"><div class="card-title"><div class="cdot cdot-a"></div>Tarefas financeiras da semana</div></div>
@@ -742,16 +776,30 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
 
     <!-- PROSPECÇÃO -->
     <div class="sec" id="sec-prospeccao">
-      <div class="pg-title">Prospecção</div>
-      <div class="pg-sub">Clique nos números do funil para atualizar.</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div><div class="pg-title">Prospecção</div><div class="pg-sub" style="margin-bottom:0">Funil, oportunidades e previsão de receita.</div></div>
+        <button class="c-btn" onclick="openOportunidadeModal()">+ Nova oportunidade</button>
+      </div>
+      <!-- Métricas de prospecção -->
+      <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px">
+        <div class="metric b"><div class="m-label">Em negociação</div><div class="m-val" id="prosp-negoc">—</div><div class="m-sub">oportunidades abertas</div></div>
+        <div class="metric g"><div class="m-label">Receita potencial</div><div class="m-val" id="prosp-potencial">—</div><div class="m-sub">se fechar tudo</div></div>
+        <div class="metric a"><div class="m-label">Taxa de conversão</div><div class="m-val" id="prosp-conv">—</div><div class="m-sub">últimos 3 meses</div></div>
+        <div class="metric" style="background:var(--sf);border:1px solid var(--bd)"><div class="m-label" style="color:var(--mu)">Ticket médio</div><div class="m-val" id="prosp-ticket" style="color:var(--pu)">—</div><div class="m-sub" style="color:var(--mu2)">contratos fechados</div></div>
+      </div>
       <div class="grid2">
         <div class="card"><div class="card-head"><div class="card-title"><div class="cdot cdot-b"></div>Funil de prospecção</div></div><div id="funnel"></div></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title"><div class="cdot cdot-g"></div>Oportunidades abertas</div></div>
+          <div id="oportunidades-list"><div class="empty">Nenhuma oportunidade cadastrada.</div></div>
+        </div>
+      </div>
+      <div class="grid2">
         <div class="card">
           <div class="card-head"><div class="card-title"><div class="cdot cdot-p"></div>Tarefas da semana</div></div>
           <div id="prosp-tasks"></div>
           <div class="input-row"><input class="ti" id="prosp-new" placeholder="Nova tarefa..."/><button class="go" onclick="addProspTask()">+</button></div>
         </div>
-      </div>
       <div class="card">
         <div class="card-head"><div class="card-title"><div class="cdot cdot-g"></div>Revisão interna de processos</div></div>
         <div id="proc-tasks"></div>
@@ -840,6 +888,89 @@ button.reset-btn:hover{color:var(--am);border-color:var(--am-bd)}
 
   </div>
 </main>
+
+<!-- MODAL: Meta financeira -->
+<div class="modal-bg" id="modal-meta-fin">
+  <div class="modal" style="width:380px">
+    <div class="modal-hd"><div class="modal-title">🎯 Meta de receita mensal</div><button class="modal-close" onclick="closeModal('modal-meta-fin')">×</button></div>
+    <div class="form-row"><label class="form-label">Meta de receita (R$)</label><input class="ti" id="meta-fin-val" type="number" style="width:100%" placeholder="Ex: 15000"/></div>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:12px">Define a meta de faturamento bruto mensal da Domus.</div>
+    <div class="form-actions"><button class="ghost" onclick="closeModal('modal-meta-fin')">Cancelar</button><button class="go" onclick="saveMetaFin()">Salvar meta</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Pró-labore -->
+<div class="modal-bg" id="modal-prolabore">
+  <div class="modal" style="width:420px">
+    <div class="modal-hd"><div class="modal-title">Registrar pró-labore / retirada</div><button class="modal-close" onclick="closeModal('modal-prolabore')">×</button></div>
+    <div class="grid2" style="gap:10px">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Sócio / colaborador</label><select class="sel" id="pl-resp" style="width:100%"></select></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Valor (R$)</label><input class="ti" id="pl-val" type="number" style="width:100%" placeholder="Ex: 3000"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Data</label><input class="ti" type="date" id="pl-data" style="width:100%"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Tipo</label>
+        <select class="sel" id="pl-tipo" style="width:100%">
+          <option value="prolabore">Pró-labore</option>
+          <option value="retirada">Retirada de lucro</option>
+          <option value="adiantamento">Adiantamento</option>
+          <option value="bonus">Bônus</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label">Observação (opcional)</label><input class="ti" id="pl-obs" style="width:100%" placeholder="Ex: referente ao mês de abril..."/></div>
+    <div class="form-actions"><button class="ghost" onclick="closeModal('modal-prolabore')">Cancelar</button><button class="go" onclick="saveProLabore()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Imposto -->
+<div class="modal-bg" id="modal-imposto">
+  <div class="modal" style="width:420px">
+    <div class="modal-hd"><div class="modal-title">Registrar imposto / provisão</div><button class="modal-close" onclick="closeModal('modal-imposto')">×</button></div>
+    <div class="grid2" style="gap:10px">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Tipo</label>
+        <select class="sel" id="imp-tipo" style="width:100%">
+          <option value="simples">Simples Nacional</option>
+          <option value="iss">ISS</option>
+          <option value="irpf">IRPF</option>
+          <option value="inss">INSS</option>
+          <option value="provisao">Provisão</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Valor (R$)</label><input class="ti" id="imp-val" type="number" style="width:100%" placeholder="Ex: 600"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Vencimento</label><input class="ti" type="date" id="imp-venc" style="width:100%"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Status</label>
+        <select class="sel" id="imp-status" style="width:100%"><option value="pend">A pagar</option><option value="ok">Pago</option></select>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label">Observação</label><input class="ti" id="imp-obs" style="width:100%" placeholder="Competência, referência..."/></div>
+    <div class="form-actions"><button class="ghost" onclick="closeModal('modal-imposto')">Cancelar</button><button class="go" onclick="saveImposto()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Oportunidade de prospecção -->
+<div class="modal-bg" id="modal-oportunidade">
+  <div class="modal" style="width:480px">
+    <div class="modal-hd"><div class="modal-title" id="oport-modal-title">Nova oportunidade</div><button class="modal-close" onclick="closeModal('modal-oportunidade')">×</button></div>
+    <div class="form-row"><label class="form-label">Nome do prospect</label><input class="ti" id="ort-nome" style="width:100%" placeholder="Ex: Clínica Bella Estética"/></div>
+    <div class="grid2" style="gap:10px">
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Segmento</label><input class="ti" id="ort-segmento" style="width:100%" placeholder="Ex: Estética, Médico..."/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Valor estimado (R$/mês)</label><input class="ti" id="ort-valor" type="number" style="width:100%" placeholder="Ex: 2500"/></div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Etapa</label>
+        <select class="sel" id="ort-etapa" style="width:100%">
+          <option value="contato">Primeiro contato</option>
+          <option value="reuniao">Reunião agendada</option>
+          <option value="proposta">Proposta enviada</option>
+          <option value="negociacao">Em negociação</option>
+          <option value="fechado">Fechado ✓</option>
+          <option value="perdido">Perdido ✗</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin-bottom:0"><label class="form-label">Responsável</label><select class="sel" id="ort-resp" style="width:100%"></select></div>
+    </div>
+    <div class="form-row"><label class="form-label">Observação / próximo passo</label><textarea class="ta" id="ort-obs" placeholder="Próximo passo, interesse, contato..." style="min-height:60px"></textarea></div>
+    <div class="form-actions"><button class="ghost" onclick="closeModal('modal-oportunidade')">Cancelar</button><button class="go" onclick="saveOportunidade()">Salvar</button></div>
+  </div>
+</div>
 
 <!-- MODAL: Backup & Segurança -->
 <div class="modal-bg" id="modal-backup">
@@ -1558,6 +1689,10 @@ const DEF={
   lastMonthlyRun:'', // tracks last month recurrence ran
   lastWeeklySummary:'', // tracks last weekly summary shown
   internalTasks:[], // tarefas avulsas internas da Domus
+  prolabore:[], // pró-labore e retiradas
+  impostos:[], // impostos e provisões
+  oportunidades:[], // oportunidades de prospecção
+  metaFin:{}, // {val: number} meta mensal
   videos:[],
   socios:[
     {id:'soc1',name:'Alonso',perc:33.33,color:'var(--bl-bg)',tc:'var(--bl)'},
@@ -1723,7 +1858,7 @@ function fixS(s){
   });
   // Fix top-level arrays
   if(!s.despesas)s.despesas=[];
-  ['fin','finTasks','funil','prospTasks','procTasks','despesas','socios','videos','templates','internalTasks'].forEach(k=>{
+  ['fin','finTasks','funil','prospTasks','procTasks','despesas','socios','videos','templates','internalTasks','prolabore','impostos','oportunidades'].forEach(k=>{
     if(!s[k])s[k]=DEF[k]||[];
     else s[k]=fbArr(s[k]);
   });
@@ -2414,6 +2549,138 @@ window.loadAuditLog=()=>{
         +'</div>';
     }).catch(e=>{el.textContent='Erro ao carregar: '+e.message;});
   });
+};
+
+// ── META FINANCEIRA ──
+window.openMetaModal=()=>{
+  document.getElementById('meta-fin-val').value=(S.metaFin?.val)||'';
+  openModal('modal-meta-fin');
+};
+window.saveMetaFin=()=>{
+  const val=parseFloat(document.getElementById('meta-fin-val').value)||0;
+  if(!val){showToast('Informe o valor da meta');return;}
+  if(!S.metaFin)S.metaFin={};
+  S.metaFin.val=val;
+  dbW('metaFin',S.metaFin);
+  closeModal('modal-meta-fin');
+  renderFinanceiro();
+  showToast('✓ Meta de R$ '+val.toLocaleString('pt-BR')+' salva');
+};
+
+// ── PRÓ-LABORE ──
+window.openProLaboreModal=()=>{
+  const sel=document.getElementById('pl-resp');
+  if(sel)sel.innerHTML=(S.colaboradores||[]).map(c=>'<option value="'+c.tag+'">'+c.name+'</option>').join('');
+  document.getElementById('pl-val').value='';
+  document.getElementById('pl-data').value=new Date().toISOString().split('T')[0];
+  document.getElementById('pl-obs').value='';
+  openModal('modal-prolabore');
+};
+window.saveProLabore=()=>{
+  const resp=document.getElementById('pl-resp').value;
+  const val=parseFloat(document.getElementById('pl-val').value)||0;
+  const data=document.getElementById('pl-data').value;
+  const tipo=document.getElementById('pl-tipo').value;
+  const obs=document.getElementById('pl-obs').value.trim();
+  if(!val){showToast('Informe o valor');return;}
+  const mes=data?data.slice(0,7):getFinMes();
+  if(!S.prolabore)S.prolabore=[];
+  S.prolabore.push({id:uid(),resp,val,data,tipo,obs,mes,criadoEm:Date.now()});
+  dbW('prolabore',S.prolabore);
+  closeModal('modal-prolabore');
+  renderFinanceiro();
+  auditLog('prolabore_registrado',resp+' · R$ '+val);
+  showToast('✓ Pró-labore registrado');
+};
+window.delProLabore=(id)=>{
+  showConfirm({icon:'🗑️',title:'Remover registro?',msg:'Este registro será removido.',okLabel:'Remover',okClass:'danger',onOk:()=>{
+    S.prolabore=(S.prolabore||[]).filter(x=>x.id!==id);
+    dbW('prolabore',S.prolabore);renderFinanceiro();
+  }});
+};
+
+// ── IMPOSTOS ──
+window.openImpostoModal=()=>{
+  document.getElementById('imp-val').value='';
+  document.getElementById('imp-venc').value='';
+  document.getElementById('imp-obs').value='';
+  document.getElementById('imp-status').value='pend';
+  openModal('modal-imposto');
+};
+window.saveImposto=()=>{
+  const tipo=document.getElementById('imp-tipo').value;
+  const val=parseFloat(document.getElementById('imp-val').value)||0;
+  const venc=document.getElementById('imp-venc').value;
+  const status=document.getElementById('imp-status').value;
+  const obs=document.getElementById('imp-obs').value.trim();
+  if(!val){showToast('Informe o valor');return;}
+  const mes=venc?venc.slice(0,7):getFinMes();
+  if(!S.impostos)S.impostos=[];
+  S.impostos.push({id:uid(),tipo,val,venc,status,obs,mes,criadoEm:Date.now()});
+  dbW('impostos',S.impostos);
+  closeModal('modal-imposto');
+  renderFinanceiro();
+  showToast('✓ Imposto registrado');
+};
+window.toggleImposto=(id)=>{
+  const imp=(S.impostos||[]).find(x=>x.id===id);if(!imp)return;
+  imp.status=imp.status==='ok'?'pend':'ok';
+  if(imp.status==='ok')imp.dataPag=new Date().toISOString().split('T')[0];
+  dbW('impostos',S.impostos);renderFinanceiro();
+};
+window.delImposto=(id)=>{
+  showConfirm({icon:'🗑️',title:'Remover imposto?',msg:'',okLabel:'Remover',okClass:'danger',onOk:()=>{
+    S.impostos=(S.impostos||[]).filter(x=>x.id!==id);
+    dbW('impostos',S.impostos);renderFinanceiro();
+  }});
+};
+
+// ── OPORTUNIDADES ──
+let _ortCtx=null;
+window.openOportunidadeModal=(id)=>{
+  _ortCtx=id||null;
+  document.getElementById('oport-modal-title').textContent=id?'Editar oportunidade':'Nova oportunidade';
+  const respSel=document.getElementById('ort-resp');
+  if(respSel)respSel.innerHTML=(S.colaboradores||[]).map(c=>'<option value="'+c.tag+'">'+c.tag+'</option>').join('');
+  if(id){
+    const o=(S.oportunidades||[]).find(x=>x.id===id);if(!o)return;
+    document.getElementById('ort-nome').value=o.nome||'';
+    document.getElementById('ort-segmento').value=o.segmento||'';
+    document.getElementById('ort-valor').value=o.valor||'';
+    document.getElementById('ort-etapa').value=o.etapa||'contato';
+    document.getElementById('ort-obs').value=o.obs||'';
+    if(respSel)respSel.value=o.resp||'';
+  } else {
+    ['ort-nome','ort-segmento','ort-valor','ort-obs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    document.getElementById('ort-etapa').value='contato';
+  }
+  openModal('modal-oportunidade');
+};
+window.saveOportunidade=()=>{
+  const nome=document.getElementById('ort-nome').value.trim();
+  if(!nome){showToast('Informe o nome do prospect');return;}
+  const segmento=document.getElementById('ort-segmento').value.trim();
+  const valor=parseFloat(document.getElementById('ort-valor').value)||0;
+  const etapa=document.getElementById('ort-etapa').value;
+  const resp=document.getElementById('ort-resp').value;
+  const obs=document.getElementById('ort-obs').value.trim();
+  if(!S.oportunidades)S.oportunidades=[];
+  if(_ortCtx){
+    const o=S.oportunidades.find(x=>x.id===_ortCtx);
+    if(o)Object.assign(o,{nome,segmento,valor,etapa,resp,obs,updatedAt:Date.now()});
+  } else {
+    S.oportunidades.push({id:uid(),nome,segmento,valor,etapa,resp,obs,criadoEm:Date.now()});
+  }
+  dbW('oportunidades',S.oportunidades);
+  closeModal('modal-oportunidade');
+  renderProspeccao();
+  showToast('✓ Oportunidade salva');
+};
+window.delOportunidade=(id)=>{
+  showConfirm({icon:'🗑️',title:'Remover oportunidade?',msg:'',okLabel:'Remover',okClass:'danger',onOk:()=>{
+    S.oportunidades=(S.oportunidades||[]).filter(x=>x.id!==id);
+    dbW('oportunidades',S.oportunidades);renderProspeccao();
+  }});
 };
 
 window.forceMonthlyRecurrence=()=>{
@@ -4535,6 +4802,96 @@ function renderFinanceiro(){
   window._finData={mes,mesFin,faturamento,custosClientes:custosServicos,custosClientes_serv:custosServicos,caixaReserva,lucroBruto,despOperac,lucroLiquido:valorADividir,valorADividir,valorPorSocio,nSocios,sociosList,totalPerc:100,desp};
 
   document.getElementById('fin-tasks').innerHTML=(S.finTasks||[]).map(id=>tkHtml(id)).join('');
+
+  // ── DRE ──
+  const metaVal=parseFloat(S.metaFin?.val)||0;
+  const dreEl=document.getElementById('dre-body');
+  if(dreEl){
+    const totalPL=(S.prolabore||[]).filter(p=>p.mes===mes).reduce((a,p)=>a+(parseFloat(p.val)||0),0);
+    const totalImp=(S.impostos||[]).filter(i=>i.mes===mes&&i.status==='ok').reduce((a,i)=>a+(parseFloat(i.val)||0),0);
+    const lucroReal=lucroBruto-despOperac-totalPL-totalImp;
+    const rows=[
+      ['Receita bruta',faturamento,'var(--gn)',false],
+      ['(-) Custos de clientes',custosServicos,'var(--rd)',false],
+      ['= Lucro bruto',lucroBruto,'var(--bl)',true],
+      ['(-) Despesas operacionais',despOperac,'var(--rd)',false],
+      ['(-) Pró-labore',totalPL,'var(--pu)',false],
+      ['(-) Impostos',totalImp,'var(--am)',false],
+    ];
+    dreEl.innerHTML='<div style="font-size:12px">'
+      +rows.map(([l,v,c,bold])=>'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd);'+(bold?'font-weight:600':'')+'">'
+        +'<span style="color:var(--mu)">'+l+'</span><span style="color:'+c+';font-family:DM Mono,monospace">'+fmt(v)+'</span></div>').join('')
+      +'<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;font-size:13px">'
+      +'<span>= Resultado líquido</span><span style="color:'+(lucroReal>=0?'var(--gn)':'var(--rd)')+';font-family:DM Mono,monospace">'+fmt(lucroReal)+'</span></div>'
+      +(metaVal>0?'<div style="margin-top:8px;background:var(--sf2);border-radius:var(--rs);padding:8px">'
+        +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:var(--mu)">Meta: '+fmt(metaVal)+'</span><span style="color:'+(faturamento>=metaVal?'var(--gn)':'var(--am)')+'">'+(Math.round(faturamento/metaVal*100))+'%</span></div>'
+        +'<div style="background:var(--bd);border-radius:4px;height:6px"><div style="background:'+(faturamento>=metaVal?'var(--gn)':'var(--am)')+';border-radius:4px;height:6px;width:'+Math.min(100,Math.round(faturamento/metaVal*100))+'%"></div></div></div>':'')
+      +'</div>';
+    const pctEl=document.getElementById('dre-meta-pct');
+    if(pctEl&&metaVal>0)pctEl.textContent=Math.round(faturamento/metaVal*100)+'% da meta';
+  }
+
+  // ── PROJEÇÃO 3 MESES ──
+  const projEl=document.getElementById('projecao-body');
+  if(projEl){
+    const now2=new Date();
+    const projs=[];
+    for(let mi=1;mi<=3;mi++){
+      const d=new Date(now2.getFullYear(),now2.getMonth()+mi,1);
+      const mStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      const mLabel=MESES_LABELS[d.getMonth()]+' '+d.getFullYear();
+      const recProj=(S.clients||[]).filter(c=>c.active!==false&&parseFloat(c.valor)>0).reduce((a,c)=>a+(parseFloat(c.valor)||0),0);
+      const despRecorr=(S.despesas||[]).filter(d=>d.recorrente).reduce((a,d)=>a+(parseFloat(d.val)||0),0);
+      projs.push({mLabel,recProj,despRecorr,lucroProj:recProj-despRecorr});
+    }
+    projEl.innerHTML='<div style="font-size:12px">'
+      +projs.map(p=>'<div style="padding:10px 0;border-bottom:1px solid var(--bd)">'
+        +'<div style="font-size:11px;font-weight:600;color:var(--mu);margin-bottom:4px">'+p.mLabel+'</div>'
+        +'<div style="display:flex;justify-content:space-between"><span style="color:var(--mu)">Receita estimada</span><span style="color:var(--gn);font-family:DM Mono,monospace">'+fmt(p.recProj)+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between"><span style="color:var(--mu)">Desp. recorrentes</span><span style="color:var(--rd);font-family:DM Mono,monospace">-'+fmt(p.despRecorr)+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;font-weight:600;margin-top:3px"><span>Projeção</span><span style="color:'+(p.lucroProj>=0?'var(--gn)':'var(--rd)')+';font-family:DM Mono,monospace">'+fmt(p.lucroProj)+'</span></div></div>').join('')
+      +'<div style="font-size:10px;color:var(--mu2);padding-top:6px">Baseado nos contratos ativos e despesas recorrentes.</div></div>';
+  }
+
+  // ── PRÓ-LABORE ──
+  const plList=document.getElementById('prolabore-list');
+  if(plList){
+    const plMes=(S.prolabore||[]).filter(p=>p.mes===mes);
+    const tipoLabel={prolabore:'Pró-labore',retirada:'Retirada',adiantamento:'Adiantamento',bonus:'Bônus'};
+    if(!plMes.length){plList.innerHTML='<div class="empty">Nenhum registro neste mês.</div>';}
+    else{
+      const totPL=plMes.reduce((a,p)=>a+(parseFloat(p.val)||0),0);
+      plList.innerHTML='<div style="font-size:12px">'
+        +plMes.map(p=>'<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">'
+          +'<div style="flex:1"><div style="font-weight:500">'+p.resp+'</div>'
+          +'<div style="font-size:10px;color:var(--mu)">'+(tipoLabel[p.tipo]||p.tipo)+(p.obs?' · '+p.obs:'')+'</div></div>'
+          +'<span style="color:var(--pu);font-family:DM Mono,monospace;font-weight:600">'+fmt(parseFloat(p.val)||0)+'</span>'
+          +'<button data-id="'+p.id+'" onclick="delProLabore(this.dataset.id)" style="background:transparent;border:none;color:var(--rd);cursor:pointer;font-size:14px">×</button>'
+          +'</div>').join('')
+        +'<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:600"><span>Total</span><span style="color:var(--pu);font-family:DM Mono,monospace">'+fmt(totPL)+'</span></div></div>';
+    }
+  }
+
+  // ── IMPOSTOS ──
+  const impList=document.getElementById('impostos-list');
+  if(impList){
+    const impMes=(S.impostos||[]).filter(i=>i.mes===mes);
+    const tipoImpLabel={simples:'Simples Nacional',iss:'ISS',irpf:'IRPF',inss:'INSS',provisao:'Provisão',outro:'Outro'};
+    if(!impMes.length){impList.innerHTML='<div class="empty">Nenhum imposto neste mês.</div>';}
+    else{
+      const totImp=impMes.reduce((a,i)=>a+(parseFloat(i.val)||0),0);
+      impList.innerHTML='<div style="font-size:12px">'
+        +impMes.map(i=>'<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">'
+          +'<div style="flex:1"><div style="font-weight:500">'+(tipoImpLabel[i.tipo]||i.tipo)+'</div>'
+          +'<div style="font-size:10px;color:var(--mu)">'+(i.venc?'Venc: '+new Date(i.venc+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}):'')+(i.obs?' · '+i.obs:'')+'</div></div>'
+          +'<span style="color:'+(i.status==='ok'?'var(--gn)':'var(--am)')+';font-size:10px;padding:2px 7px;border-radius:6px;background:'+(i.status==='ok'?'var(--gn-bg)':'var(--am-bg)')+'">'+(i.status==='ok'?'Pago':'A pagar')+'</span>'
+          +'<span style="color:var(--am);font-family:DM Mono,monospace;font-weight:600;margin-left:4px">'+fmt(parseFloat(i.val)||0)+'</span>'
+          +'<button data-id="'+i.id+'" onclick="toggleImposto(this.dataset.id)" style="background:transparent;border:none;color:var(--mu);cursor:pointer;font-size:11px">'+(i.status==='ok'?'↩':'✓')+'</button>'
+          +'<button data-id="'+i.id+'" onclick="delImposto(this.dataset.id)" style="background:transparent;border:none;color:var(--rd);cursor:pointer;font-size:14px">×</button>'
+          +'</div>').join('')
+        +'<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:600"><span>Total</span><span style="color:var(--am);font-family:DM Mono,monospace">'+fmt(totImp)+'</span></div></div>';
+    }
+  }
 }
 
 // ── PAGAR CLIENTE ──
@@ -5771,6 +6128,43 @@ function renderProspeccao(){
   document.getElementById('funnel').innerHTML=(S.funil||[]).map((f,i)=>`<div class="funnel-row"><div class="funnel-name">${f.stage}</div><div class="funnel-bar"><div class="funnel-fill" style="width:${Math.round(f.n/max*100)}%;background:${f.color}"></div></div><div class="funnel-n" onclick="editFunnel(${i})">${f.n}</div></div>`).join('');
   document.getElementById('prosp-tasks').innerHTML=(S.prospTasks||[]).map(id=>tkHtml(id)).join('');
   document.getElementById('proc-tasks').innerHTML=(S.procTasks||[]).map(id=>tkHtml(id)).join('');
+
+  // ── Oportunidades ──
+  const ortList=document.getElementById('oportunidades-list');
+  if(ortList){
+    const orts=(S.oportunidades||[]).filter(o=>o.etapa!=='fechado'&&o.etapa!=='perdido');
+    const etapaLabel={contato:'Contato',reuniao:'Reunião',proposta:'Proposta',negociacao:'Negociação',fechado:'Fechado',perdido:'Perdido'};
+    const etapaCor={contato:'var(--mu)',reuniao:'var(--bl)',proposta:'var(--am)',negociacao:'var(--pu)',fechado:'var(--gn)',perdido:'var(--rd)'};
+    if(!orts.length){ortList.innerHTML='<div class="empty">Nenhuma oportunidade aberta.</div>';}
+    else{
+      ortList.innerHTML=orts.map(o=>'<div style="padding:10px 0;border-bottom:1px solid var(--bd)">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">'
+        +'<div style="font-weight:500;font-size:13px">'+o.nome+'</div>'
+        +'<div style="display:flex;gap:6px;align-items:center">'
+        +(o.valor?'<span style="font-family:DM Mono,monospace;font-size:12px;color:var(--gn)">'+fmt(parseFloat(o.valor)||0)+'/mês</span>':'')
+        +'<span style="font-size:10px;padding:2px 8px;border-radius:6px;background:var(--sf2);color:'+(etapaCor[o.etapa]||'var(--mu)')+'">'+( etapaLabel[o.etapa]||o.etapa)+'</span>'
+        +'<button data-id="'+o.id+'" onclick="openOportunidadeModal(this.dataset.id)" style="background:transparent;border:none;color:var(--mu);cursor:pointer;font-size:11px">✏</button>'
+        +'<button data-id="'+o.id+'" onclick="delOportunidade(this.dataset.id)" style="background:transparent;border:none;color:var(--rd);cursor:pointer;font-size:13px">×</button>'
+        +'</div></div>'
+        +(o.segmento?'<span style="font-size:10px;color:var(--mu)">'+o.segmento+'</span>':'')
+        +(o.obs?'<div style="font-size:11px;color:var(--mu2);margin-top:2px">→ '+o.obs+'</div>':'')
+        +'</div>').join('');
+    }
+  }
+
+  // ── Métricas prospecção ──
+  const orts=(S.oportunidades||[]);
+  const abertas=orts.filter(o=>o.etapa!=='fechado'&&o.etapa!=='perdido');
+  const fechadas=orts.filter(o=>o.etapa==='fechado');
+  const perdidas=orts.filter(o=>o.etapa==='perdido');
+  const totalProcessadas=fechadas.length+perdidas.length;
+  const convRate=totalProcessadas>0?Math.round(fechadas.length/totalProcessadas*100):0;
+  const potencial=abertas.reduce((a,o)=>a+(parseFloat(o.valor)||0),0);
+  const ticketMedio=fechadas.length>0?fechadas.reduce((a,o)=>a+(parseFloat(o.valor)||0),0)/fechadas.length:0;
+  const elNegoc=document.getElementById('prosp-negoc');if(elNegoc)elNegoc.textContent=abertas.length;
+  const elPot=document.getElementById('prosp-potencial');if(elPot)elPot.textContent=fmt(potencial);
+  const elConv=document.getElementById('prosp-conv');if(elConv)elConv.textContent=convRate+'%';
+  const elTicket=document.getElementById('prosp-ticket');if(elTicket)elTicket.textContent=fmt(ticketMedio);
 }
 window.editFunnel=(i)=>{const v=prompt(`Nº em "${S.funil[i].stage}":`,S.funil[i].n);if(v===null)return;const n=parseInt(v);if(!isNaN(n)&&n>=0){S.funil[i].n=n;dbW('funil',S.funil);renderProspeccao();}};
 window.addProspTask=()=>{const txt=document.getElementById('prosp-new').value.trim();if(!txt)return;const id=uid();S.tasks[id]={id,txt,r:'Alonso',done:false,urgent:false,note:''};S.prospTasks.push(id);document.getElementById('prosp-new').value='';dbW('tasks',S.tasks);dbW('prospTasks',S.prospTasks);renderProspeccao();};
